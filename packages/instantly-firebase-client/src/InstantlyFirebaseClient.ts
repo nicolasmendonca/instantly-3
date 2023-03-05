@@ -1,4 +1,4 @@
-import type { InstantlyClient } from "instantly-client";
+import type { InstantlyClient, Workspace } from "instantly-client";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
   addDoc,
@@ -85,7 +85,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
 
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
-  ): Promise<void> => {
+  ): Promise<Workspace["id"]> => {
     const avatarUrl = generateWorkspaceAvatar(name);
     const workspaceCollection = collection(this.firestore, "workspaces");
     const workspaceDoc = await addDoc(workspaceCollection, <
@@ -108,6 +108,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         avatarUrl,
       }
     );
+    return workspaceDoc.id;
   };
 }
 

@@ -1,4 +1,5 @@
 import type { User } from "./entities/User";
+import type { Workspace } from "./entities/Workspace";
 
 type UnsubscribeFn = () => void;
 
@@ -12,5 +13,5 @@ export interface InstantlyClient {
   logout: () => Promise<void>;
 
   // Workspaces
-  createNewWorkspace: (name: string) => Promise<void>;
+  createNewWorkspace: (name: string) => Promise<Workspace["id"]>;
 }
