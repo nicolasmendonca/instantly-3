@@ -23,6 +23,7 @@ importers:
       postcss: ^8.4.21
       react: ^18.2.0
       react-dom: ^18.2.0
+      react-hook-form: ^7.43.4
       react-icons: ^4.8.0
       swr: ^2.0.4
       tailwindcss: ^3.2.7
@@ -40,6 +41,7 @@ importers:
       instantly-firebase-client: link:../../packages/instantly-firebase-client
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+      react-hook-form: 7.43.4_react@18.2.0
       swr: 2.0.4_react@18.2.0
     devDependencies:
       '@types/react': 18.0.28
@@ -3072,6 +3074,15 @@ packages:
       react-clientside-effect: 1.2.6_react@18.2.0
       use-callback-ref: 1.3.0_pmekkgnqduwlme35zpnqhenc34
       use-sidecar: 1.1.2_pmekkgnqduwlme35zpnqhenc34
+    dev: false
+
+  /react-hook-form/7.43.4_react@18.2.0:
+    resolution: {integrity: sha512-JZp05wvmuV8qr3NNDWwyhiQL05sh9E8x/2NoWtkdiyyiezmwOr5pKexlvbCEfBMa7ZYrvzk88G/uhLl47T9b7Q==}
+    engines: {node: '>=12.22.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18
+    dependencies:
+      react: 18.2.0
     dev: false
 
   /react-icons/4.8.0_react@18.2.0:

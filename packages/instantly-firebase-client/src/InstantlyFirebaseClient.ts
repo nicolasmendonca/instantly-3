@@ -1,22 +1,26 @@
 import type { InstantlyClient } from "instantly-client";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
+  addDoc,
   doc,
+  setDoc,
+  collection,
   initializeFirestore,
   runTransaction,
   type Firestore,
 } from "firebase/firestore";
-import { getAnalytics, type Analytics } from "firebase/analytics";
+import { getAnalytics } from "firebase/analytics";
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  Unsubscribe,
   type Auth,
 } from "firebase/auth";
+import { generateWorkspaceAvatar } from "./avatar";
 
 export class InstantlyFirebaseClient implements InstantlyClient {
   private app: FirebaseApp;
-  private analytics: Analytics;
   private auth: Auth;
   private firestore: Firestore;
 
@@ -32,14 +36,14 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     };
     this.app = initializeApp(firebaseConfig);
     this.firestore = initializeFirestore(this.app, {});
-    this.analytics = getAnalytics(this.app);
     this.auth = getAuth(this.app);
+    getAnalytics(this.app);
   }
 
   public subscribeToAuthState: InstantlyClient["subscribeToAuthState"] = (
     onLogin,
     onLogout
-  ) => {
+  ): Unsubscribe => {
     const unsubscribe = this.auth.onAuthStateChanged((user) => {
       if (user) {
         onLogin({
@@ -54,10 +58,26 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     return unsubscribe;
   };
 
-  public loginWithGoogle: InstantlyClient["loginWithGoogle"] = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(this.auth, provider);
-  };
+  public loginWithGoogle: InstantlyClient["loginWithGoogle"] =
+    async (): Promise<void> => {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(this.auth, provider);
+      const currentUser = this.auth.currentUser;
+
+      if (currentUser) {
+        const userDoc = doc(this.firestore, "users", currentUser.uid);
+        await runTransaction(this.firestore, async (transaction) => {
+          const userDocSnapshot = await transaction.get(userDoc);
+          // If the user profile doesn't exist, create it
+          if (!userDocSnapshot.exists()) {
+            transaction.set(userDoc, <TypesPerFirestorePath["/users/:userId"]>{
+              name: currentUser.displayName,
+              avatarUrl: currentUser.photoURL,
+            });
+          }
+        });
+      }
+    };
 
   public logout: InstantlyClient["logout"] = async () => {
     await this.auth.signOut();
@@ -65,18 +85,43 @@ export class InstantlyFirebaseClient implements InstantlyClient {
 
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
-  ) => {
-    await runTransaction(this.firestore, async (transaction) => {
-      const workspaceId = crypto.randomUUID();
-      transaction.set(doc(this.firestore, "workspaces", workspaceId), {
-        name,
-      });
-      transaction.set(
-        doc(this.firestore, "users-workspaces", this.auth.currentUser!.uid),
-        {
-          [workspaceId]: true,
-        }
-      );
+  ): Promise<void> => {
+    const avatarUrl = generateWorkspaceAvatar(name);
+    const workspaceCollection = collection(this.firestore, "workspaces");
+    const workspaceDoc = await addDoc(workspaceCollection, <
+      TypesPerFirestorePath["/workspaces/:workspaceId"]
+    >{
+      name,
+      avatarUrl,
     });
+    setDoc(
+      doc(
+        this.firestore,
+        "users",
+        this.auth.currentUser!.uid,
+        "workspaces",
+        workspaceDoc.id
+      ),
+      <TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]>{
+        role: "owner",
+        name,
+        avatarUrl,
+      }
+    );
   };
 }
+
+type TypesPerFirestorePath = {
+  "/users/:userId": {
+    name: string;
+    avatarUrl: string;
+  };
+  "/users/:userId/workspaces/:workspaceId": {
+    role: "owner" | "member" | "guest";
+    name: string;
+  };
+  "/workspaces/:workspaceId": {
+    name: string;
+    avatarUrl: string;
+  };
+};

@@ -32,6 +32,7 @@ export const LoginPage: React.FC<ILoginPageProps> = () => {
           variant={"outline"}
           leftIcon={<FcGoogle />}
           onClick={login}
+          bg={useColorModeValue("gray.300", "gray.700")}
         >
           <Center>
             <Text>Sign in with Google</Text>

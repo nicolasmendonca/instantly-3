@@ -1,4 +1,4 @@
-import React, { useState }  from 'react';
+import React, { useState } from "react";
 import { instantlyClient, type User } from "src/clients/instantlyClient";
 
 const useInstantlyClientAuth = () => {
@@ -28,35 +28,34 @@ const useInstantlyClientAuth = () => {
   };
 };
 
-
 type UseInstantlyAuthReturnType = ReturnType<typeof useInstantlyClientAuth>;
 
-const AuthContext = React.createContext<undefined | UseInstantlyAuthReturnType>(undefined);
+const AuthContext = React.createContext<undefined | UseInstantlyAuthReturnType>(
+  undefined
+);
 
 export const AuthProvider: React.FC<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }> = ({ children }) => {
-  const result = useInstantlyClientAuth()
+  const result = useInstantlyClientAuth();
 
   const memoized = React.useMemo(() => {
     return {
       user: result.user,
       login: result.login,
-      logout: result.logout      
-    }
-  }, [result.user])
+      logout: result.logout,
+    };
+  }, [result.user]);
 
   return (
-    <AuthContext.Provider value={memoized}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+    <AuthContext.Provider value={memoized}>{children}</AuthContext.Provider>
+  );
+};
 
 export const useAuth = (): UseInstantlyAuthReturnType => {
   const context = React.useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within a AuthProvider');
+    throw new Error("useAuth must be used within a AuthProvider");
   }
   return context;
-}
+};
