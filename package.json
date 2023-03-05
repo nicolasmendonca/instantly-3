@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm --filter instantly run build",
+    "dev": "pnpm --filter instantly run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

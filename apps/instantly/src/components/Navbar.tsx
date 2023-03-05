@@ -10,13 +10,13 @@ import {
   MenuList,
   MenuItem,
   MenuDivider,
-  useDisclosure,
   useColorModeValue,
   Stack,
   useColorMode,
   Center,
 } from '@chakra-ui/react';
 import { MoonIcon, SunIcon } from '@chakra-ui/icons';
+import { useAuth } from 'src/features/auth/AuthProvider';
 
 export const NavLink = ({ children }: { children: ReactNode }) => (
   <Link
@@ -33,14 +33,17 @@ export const NavLink = ({ children }: { children: ReactNode }) => (
 );
 
 export const Navbar: React.FC = () => {
+  const { logout, user } = useAuth()
   const { colorMode, toggleColorMode } = useColorMode();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const boxBg = useColorModeValue('gray.100', 'gray.900')
+
+  if (!user) return null;
+
   return (
     <>
-      <Box bg={useColorModeValue('gray.100', 'gray.900')} px={4}>
-        <div className="flex h-12 items-center justify-between">
+      <Box bg={boxBg} px={4}>
+        <div className="flex h-12 items-center justify-between max-w-screen-lg mx-auto">
           <div>Logo</div>
-
 
           <Flex alignItems={'center'}>
             <Stack direction={'row'} spacing={7}>
@@ -70,13 +73,12 @@ export const Navbar: React.FC = () => {
                   </Center>
                   <br />
                   <Center>
-                    <p>Username</p>
+                    <p>{user.name}</p>
                   </Center>
                   <br />
                   <MenuDivider />
-                  <MenuItem>Your Servers</MenuItem>
                   <MenuItem>Account Settings</MenuItem>
-                  <MenuItem>Logout</MenuItem>
+                  <MenuItem onClick={logout}>Logout</MenuItem>
                 </MenuList>
               </Menu>
             </Stack>
