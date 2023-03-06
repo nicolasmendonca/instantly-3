@@ -113,6 +113,21 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     };
   };
 
+  public getWorkspacesForUser: InstantlyClient["getWorkspacesForUser"] =
+    async ({ userId }): Promise<Workspace[]> => {
+      let workspaces: Workspace[] = [];
+      const _collection = await getDocs(
+        collection(this.firestore, "users", userId, "workspaces")
+      );
+      _collection.forEach((doc) => {
+        workspaces.push({
+          id: doc.id,
+          ...(doc.data() as TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]),
+        });
+      });
+      return workspaces;
+    };
+
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
   ): Promise<Workspace["id"]> => {
@@ -133,8 +148,8 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           workspaceDoc.id
         ),
         {
-          role,
-          workspaceName: name,
+          avatarUrl,
+          name,
         } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
       ),
       setDoc(
@@ -201,10 +216,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
 
 type TypesPerFirestorePath = {
   "/users/:userId": Omit<User, "id">;
-  "/users/:userId/workspaces/:workspaceId": {
-    role: WorkspaceMemberProfile["role"];
-    workspaceName: string;
-  };
+  "/users/:userId/workspaces/:workspaceId": Omit<Workspace, "id">;
   "/workspaces/:workspaceId": Omit<Workspace, "id">;
   "/workspaces/:workspaceId/members/:memberId": Omit<
     WorkspaceMemberProfile,

@@ -1,31 +1,34 @@
+import React from "react";
 import {
   createBrowserRouter,
-  Outlet,
   redirect,
   RouterProvider,
 } from "react-router-dom";
-import { NewWorkspacePage } from "./workspaces/new/+page";
-import { WorkspaceIdPage } from "./workspaces/[workspaceId]/+page";
+
+const WorkspacesPage = React.lazy(() => import("./workspaces/+page"));
+const NewWorkspacePage = React.lazy(() => import("./workspaces/new/+page"));
+const WorkspaceIdPage = React.lazy(
+  () => import("./workspaces/[workspaceId]/+page")
+);
 
 const router = createBrowserRouter([
   {
     path: "/",
     loader: () => {
-      return redirect("/workspaces/new");
+      return redirect("/workspaces");
     },
   },
   {
     path: "/workspaces",
-    children: [
-      {
-        path: "new",
-        element: <NewWorkspacePage />,
-      },
-      {
-        path: ":workspaceId",
-        element: <WorkspaceIdPage />,
-      },
-    ],
+    element: <WorkspacesPage />,
+  },
+  {
+    path: "/workspaces/new",
+    element: <NewWorkspacePage />,
+  },
+  {
+    path: "/workspaces/:workspaceId",
+    element: <WorkspaceIdPage />,
   },
 ]);
 

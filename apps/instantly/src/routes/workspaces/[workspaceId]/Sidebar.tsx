@@ -1,5 +1,6 @@
 import React from "react";
-import { MoonIcon, SunIcon } from "@chakra-ui/icons";
+import { ArrowBackIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
+import { Link as RRDLink } from "react-router-dom";
 import {
   IconButton,
   Avatar,
@@ -23,6 +24,8 @@ import {
   MenuList,
   Button,
   useColorMode,
+  Tooltip,
+  Center,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
 import { Workspace } from "instantly-client";
@@ -42,6 +45,7 @@ export const SidebarWithHeader: React.FC<{
     <Box minH="100vh" bg={useColorModeValue("gray.100", "gray.900")}>
       <SidebarContent
         workspaceId={workspaceId}
+        onClose={onClose}
         display={{ base: "none", md: "block" }}
       />
       <Drawer
@@ -54,11 +58,11 @@ export const SidebarWithHeader: React.FC<{
         size="full"
       >
         <DrawerContent>
-          <SidebarContent workspaceId={workspaceId} />
+          <SidebarContent workspaceId={workspaceId} onClose={onClose} />
         </DrawerContent>
       </Drawer>
       {/* mobilenav */}
-      <MobileNav onOpen={onOpen} />
+      <MobileNav onOpen={onOpen} onClose={onClose} />
       <Box ml={{ base: 0, md: 60 }} p="4">
         {children}
       </Box>
@@ -68,9 +72,10 @@ export const SidebarWithHeader: React.FC<{
 
 interface SidebarProps extends BoxProps {
   workspaceId: Workspace["id"];
+  onClose: () => void;
 }
 
-const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
+const SidebarContent = ({ workspaceId, onClose, ...rest }: SidebarProps) => {
   const { data: workspace } = useWorkspace({ workspaceId });
   const { data: projects } = useProjects({ workspaceId });
   return (
@@ -85,10 +90,20 @@ const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
       {...rest}
     >
       <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Text fontSize="2xl" fontWeight="bold">
-          {workspace?.name}
-        </Text>
-        <CloseButton display={{ base: "flex", md: "none" }} />
+        <Tooltip label="Back to workspaces">
+          <IconButton
+            to="/workspaces"
+            aria-label="Back to workspaces"
+            as={RRDLink}
+            variant="ghost"
+          >
+            <ArrowBackIcon height={5} width={5} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip label={workspace?.name}>
+          <Avatar src={workspace?.avatarUrl} />
+        </Tooltip>
+        <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
       <Box mx="8" my="4">
         <Button
@@ -121,7 +136,8 @@ interface NavItemProps extends FlexProps {
 const NavItem = ({ children, url, ...rest }: NavItemProps) => {
   return (
     <Link
-      href={url}
+      as={RRDLink}
+      to={url}
       style={{ textDecoration: "none" }}
       _focus={{ boxShadow: "none" }}
     >
@@ -146,8 +162,9 @@ const NavItem = ({ children, url, ...rest }: NavItemProps) => {
 
 interface MobileProps extends FlexProps {
   onOpen: () => void;
+  onClose: () => void;
 }
-const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
+const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
   const params = useParams<{ workspaceId: string }>();
   const { logout, user } = useAuth();
   const { data: workspaceMemberProfile } = useWorkspaceMemberProfile({

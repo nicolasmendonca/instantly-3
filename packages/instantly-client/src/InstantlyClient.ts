@@ -18,6 +18,11 @@ export interface InstantlyClient {
   logout: () => Promise<void>;
 
   // Workspaces
+  getWorkspacesForUser: ({
+    userId,
+  }: {
+    userId: User["id"];
+  }) => Promise<Workspace[]>;
   getWorkspace: ({
     workspaceId,
   }: {

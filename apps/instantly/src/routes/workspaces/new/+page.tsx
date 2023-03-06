@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 interface NewWorkspacePageProps {}
 
-export const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
+const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
   const navigate = useNavigate();
   const handleCreateNewWorkspace = async (name: string) => {
     const workspaceId = await instantlyClient.createNewWorkspace(name);
@@ -29,3 +29,5 @@ export const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
     </Center>
   );
 };
+
+export default NewWorkspacePage;
