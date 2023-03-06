@@ -180,14 +180,13 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     };
 }
 
-type Role = "admin" | "member" | "guest";
 type TypesPerFirestorePath = {
   "/users/:userId": {
     name: string;
     avatarUrl: string;
   };
   "/users/:userId/workspaces/:workspaceId": {
-    role: Role;
+    role: WorkspaceMemberProfile["role"];
     name: string;
   };
   "/workspaces/:workspaceId": {
@@ -195,7 +194,7 @@ type TypesPerFirestorePath = {
     avatarUrl: string;
   };
   "/workspaces/:workspaceId/members/:memberId": {
-    role: Role;
+    role: WorkspaceMemberProfile["role"];
     name: string;
     avatarUrl: string;
   };
