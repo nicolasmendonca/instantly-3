@@ -26,6 +26,7 @@ import {
   useColorMode,
   Tooltip,
   Center,
+  Heading,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
 import { Workspace } from "instantly-client";
@@ -89,34 +90,36 @@ const SidebarContent = ({ workspaceId, onClose, ...rest }: SidebarProps) => {
       h="full"
       {...rest}
     >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Tooltip label="Back to workspaces">
-          <IconButton
-            to="/workspaces"
-            aria-label="Back to workspaces"
-            as={RRDLink}
-            variant="ghost"
-          >
-            <ArrowBackIcon height={5} width={5} />
-          </IconButton>
-        </Tooltip>
+      <Tooltip label="Back to workspaces" placement="right">
+        <IconButton
+          my={2}
+          mx={8}
+          to="/workspaces"
+          aria-label="Back to workspaces"
+          as={RRDLink}
+          variant="ghost"
+        >
+          <ArrowBackIcon height={5} width={5} />
+        </IconButton>
+      </Tooltip>
+      <Flex
+        h="20"
+        alignItems="center"
+        mx="8"
+        justifyContent="space-between"
+        gap={4}
+      >
         <Tooltip label={workspace?.name}>
           <Avatar src={workspace?.avatarUrl} />
         </Tooltip>
+        <Heading
+          size={{ base: "md", md: "xs" }}
+          transition="all .3s ease-in-out"
+        >
+          {workspace?.name}
+        </Heading>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
-      <Box mx="8" my="4">
-        <Button
-          width="full"
-          variant="ghost"
-          height={[14, 12]}
-          borderWidth={1}
-          borderColor="gray.500"
-          _hover={{ bg: "cyan.700" }}
-        >
-          Create Project
-        </Button>
-      </Box>
       {projects?.map((project) => (
         <NavItem
           key={project.id}
@@ -125,6 +128,19 @@ const SidebarContent = ({ workspaceId, onClose, ...rest }: SidebarProps) => {
           {project.emoji ? `${project.emoji} ${project.name}` : project.name}
         </NavItem>
       ))}
+      <Box mx="8" my="4">
+        <Button
+          width="full"
+          variant="ghost"
+          size="sm"
+          py={4}
+          borderWidth={1}
+          borderColor="gray.500"
+          _hover={{ bg: "cyan.700" }}
+        >
+          Create Project
+        </Button>
+      </Box>
     </Box>
   );
 };
@@ -219,7 +235,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
             <MenuButton
               className="group"
               py={2}
-              transition="all 0.3s"
+              transition="all 0.3s ease-in-out"
               rounded="lg"
               _focus={{ boxShadow: "none" }}
               _hover={{ bg: "cyan.600" }}
