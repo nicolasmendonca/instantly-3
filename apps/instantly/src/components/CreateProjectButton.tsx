@@ -27,6 +27,7 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
     handleSubmit,
     register,
     formState: { errors, isSubmitting },
+    reset,
   } = useForm();
 
   const nameErrorMessage = errors.name?.message?.toString();
@@ -41,6 +42,7 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
             workspaceId,
             name,
           });
+          reset();
           onProjectCreated(projectId);
         })}
       >

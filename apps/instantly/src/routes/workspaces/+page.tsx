@@ -2,17 +2,13 @@ import React from "react";
 import { Link as RRDLink } from "react-router-dom";
 import {
   Avatar,
-  AvatarGroup,
-  Box,
   Button,
   Center,
   Divider,
-  Link,
   Stack,
-  Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useWorkspaces } from "../../features/workspaces/useWorkspaces";
+import { useWorkspaces } from "src/features/workspaces/useWorkspaces";
 
 interface IWorkspacesPageProps {}
 
@@ -28,18 +24,22 @@ const WorkspacesPage: React.FC<IWorkspacesPageProps> = () => {
         gap={4}
         shadow="lg"
       >
-        {workspaces?.map((workspace) => (
-          <Button
-            key={workspace.id}
-            as={RRDLink}
-            to={`/workspaces/${workspace.id}`}
-            leftIcon={<Avatar src={workspace.avatarUrl} />}
-            minHeight="16"
-          >
-            {workspace.name}
-          </Button>
-        ))}
-        <Divider borderColor={useColorModeValue("gray.400", "gray.700")} />
+        {workspaces && workspaces.length > 0 && (
+          <>
+            {workspaces?.map((workspace) => (
+              <Button
+                key={workspace.id}
+                as={RRDLink}
+                to={`/workspaces/${workspace.id}`}
+                leftIcon={<Avatar src={workspace.avatarUrl} />}
+                minHeight="16"
+              >
+                {workspace.name}
+              </Button>
+            ))}
+            <Divider borderColor={useColorModeValue("gray.400", "gray.700")} />
+          </>
+        )}
         <Button as={RRDLink} to={`/workspaces/new`} minHeight="16">
           Create New Workspace
         </Button>
