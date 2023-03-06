@@ -26,6 +26,7 @@ const WorkspacesPage: React.FC<IWorkspacesPageProps> = () => {
         p="12"
         rounded="lg"
         gap={4}
+        shadow="lg"
       >
         {workspaces?.map((workspace) => (
           <Button
@@ -38,7 +39,7 @@ const WorkspacesPage: React.FC<IWorkspacesPageProps> = () => {
             {workspace.name}
           </Button>
         ))}
-        <Divider />
+        <Divider borderColor={useColorModeValue("gray.400", "gray.700")} />
         <Button as={RRDLink} to={`/workspaces/new`} minHeight="16">
           Create New Workspace
         </Button>

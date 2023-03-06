@@ -213,6 +213,17 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       });
     };
 
+  public getProjectForWorkspace: InstantlyClient["getProjectForWorkspace"] =
+    async ({ workspaceId, projectId }): Promise<Project> => {
+      const projectDoc = await getDoc(
+        doc(this.firestore, "workspaces", workspaceId, "projects", projectId)
+      );
+      return {
+        id: projectDoc.id,
+        ...(projectDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]),
+      };
+    };
+
   public createProject: InstantlyClient["createProject"] = async ({
     workspaceId,
     name,
