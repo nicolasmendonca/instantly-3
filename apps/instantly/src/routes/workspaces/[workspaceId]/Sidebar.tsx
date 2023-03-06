@@ -25,9 +25,12 @@ import {
   useColorMode,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
-import { IconType } from "react-icons";
 import { Workspace } from "instantly-client";
 import { useWorkspaceTasks } from "./useWorkspaceTasks";
+import { useAuth } from "../../../features/auth/AuthProvider";
+import { useWorkspace } from "../../../features/workspaces/useWorkspace";
+import { useParams } from "react-router-dom";
+import { useWorkspaceMemberProfile } from "../../../features/profile/useWorkspaceMemberProfile";
 
 export const SidebarWithHeader: React.FC<{
   children: React.ReactNode;
@@ -67,6 +70,7 @@ interface SidebarProps extends BoxProps {
 }
 
 const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
+  const { data: workspace } = useWorkspace({ workspaceId });
   const { data: tasks } = useWorkspaceTasks({ workspaceId });
   return (
     <Box
@@ -81,7 +85,7 @@ const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
     >
       <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
         <Text fontSize="2xl" fontWeight="bold">
-          Instantly
+          {workspace?.name}
         </Text>
         <CloseButton display={{ base: "flex", md: "none" }} />
       </Flex>
@@ -137,7 +141,17 @@ interface MobileProps extends FlexProps {
   onOpen: () => void;
 }
 const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
+  const params = useParams<{ workspaceId: string }>();
+  const { logout, user } = useAuth();
+  const { data: workspaceMemberProfile } = useWorkspaceMemberProfile({
+    memberId: user!.id,
+    workspaceId: params!.workspaceId!,
+  });
+  const { data: workspace } = useWorkspace({
+    workspaceId: params!.workspaceId!,
+  });
   const { colorMode, toggleColorMode } = useColorMode();
+
   return (
     <Flex
       ml={{ base: 0, md: 60 }}
@@ -163,7 +177,7 @@ const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
         fontSize="2xl"
         fontWeight="bold"
       >
-        Instantly
+        {workspace?.name}
       </Text>
 
       <HStack spacing={{ base: "0", md: "4" }}>
@@ -190,9 +204,7 @@ const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
                 <Avatar
                   ml={[0, 2]}
                   size={"sm"}
-                  src={
-                    "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9"
-                  }
+                  src={workspaceMemberProfile?.avatarUrl}
                 />
                 <VStack
                   display={{ base: "none", md: "flex" }}
@@ -200,13 +212,14 @@ const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
                   spacing="1px"
                   ml="2"
                 >
-                  <Text fontSize="sm">Justina Clark</Text>
+                  <Text fontSize="sm">{workspaceMemberProfile?.name}</Text>
                   <Text
                     className="group-hover:text-white transition-colors"
                     fontSize="xs"
                     color="gray.600"
+                    textTransform="capitalize"
                   >
-                    Admin
+                    {workspaceMemberProfile?.role}
                   </Text>
                 </VStack>
                 <Box display={{ base: "none", md: "flex" }}>
@@ -215,14 +228,19 @@ const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
               </HStack>
             </MenuButton>
             <MenuList
-              bg={useColorModeValue("white", "gray.900")}
               borderColor={useColorModeValue("gray.200", "gray.700")}
+              py={0}
+              rounded="lg"
             >
-              <MenuItem>Profile</MenuItem>
+              <MenuItem roundedTop="lg">Profile</MenuItem>
               <MenuItem>Settings</MenuItem>
               <MenuItem>Billing</MenuItem>
-              <MenuDivider />
-              <MenuItem>Sign out</MenuItem>
+              <MenuDivider
+                borderColor={useColorModeValue("gray.300", "gray.500")}
+              />
+              <MenuItem onClick={logout} roundedBottom="lg">
+                Sign out
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>

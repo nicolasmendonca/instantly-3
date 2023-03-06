@@ -1,15 +1,20 @@
-import type { InstantlyClient, Task, Workspace } from "instantly-client";
+import type {
+  InstantlyClient,
+  Task,
+  Workspace,
+  WorkspaceMemberProfile,
+} from "instantly-client";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
   addDoc,
-  doc,
   setDoc,
   collection,
   initializeFirestore,
   runTransaction,
   type Firestore,
-  query,
   getDocs,
+  getDoc,
+  doc,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import {
@@ -91,31 +96,60 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   /**
    * Workspaces
    */
+  public getWorkspace: InstantlyClient["getWorkspace"] = async ({
+    workspaceId,
+  }): Promise<Workspace> => {
+    const workspaceDocReference = doc(
+      this.firestore,
+      "workspaces",
+      workspaceId
+    );
+    const workspaceDoc = await getDoc(workspaceDocReference);
+    return {
+      id: workspaceDoc.id,
+      ...(workspaceDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId"]),
+    };
+  };
+
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
   ): Promise<Workspace["id"]> => {
     const avatarUrl = generateWorkspaceAvatar(name);
     const workspaceCollection = collection(this.firestore, "workspaces");
-    const workspaceDoc = await addDoc(workspaceCollection, <
-      TypesPerFirestorePath["/workspaces/:workspaceId"]
-    >{
+    const workspaceDoc = await addDoc(workspaceCollection, {
       name,
       avatarUrl,
-    });
-    setDoc(
-      doc(
-        this.firestore,
-        "users",
-        this.auth.currentUser!.uid,
-        "workspaces",
-        workspaceDoc.id
+    } satisfies TypesPerFirestorePath["/workspaces/:workspaceId"]);
+    const role = "admin";
+    await Promise.all([
+      setDoc(
+        doc(
+          this.firestore,
+          "users",
+          this.auth.currentUser!.uid,
+          "workspaces",
+          workspaceDoc.id
+        ),
+        {
+          role,
+          name,
+        } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
       ),
-      <TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]>{
-        role: "owner",
-        name,
-        avatarUrl,
-      }
-    );
+      setDoc(
+        doc(
+          this.firestore,
+          "workspaces",
+          workspaceDoc.id,
+          "members",
+          this.auth.currentUser!.uid
+        ),
+        {
+          role,
+          avatarUrl,
+          name: this.auth.currentUser!.displayName ?? "Anon",
+        } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]
+      ),
+    ]);
     return workspaceDoc.id;
   };
 
@@ -126,22 +160,42 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         collection(this.firestore, "workspaces", workspaceId, "tasks")
       );
       _collection.forEach((doc) => {
-        tasks.push({ id: doc.id, ...doc.data() } as Task);
+        tasks.push({
+          id: doc.id,
+          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/tasks/:taskId"]),
+        });
       });
       return tasks;
     };
+
+  public getWorkspaceMemberProfile: InstantlyClient["getWorkspaceMemberProfile"] =
+    async ({ workspaceId, memberId }): Promise<WorkspaceMemberProfile> => {
+      const workspaceMemberProfileDoc = await getDoc(
+        doc(this.firestore, "workspaces", workspaceId, "members", memberId)
+      );
+      return {
+        id: workspaceMemberProfileDoc.id,
+        ...(workspaceMemberProfileDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]),
+      };
+    };
 }
 
+type Role = "admin" | "member" | "guest";
 type TypesPerFirestorePath = {
   "/users/:userId": {
     name: string;
     avatarUrl: string;
   };
   "/users/:userId/workspaces/:workspaceId": {
-    role: "owner" | "member" | "guest";
+    role: Role;
     name: string;
   };
   "/workspaces/:workspaceId": {
+    name: string;
+    avatarUrl: string;
+  };
+  "/workspaces/:workspaceId/members/:memberId": {
+    role: Role;
     name: string;
     avatarUrl: string;
   };

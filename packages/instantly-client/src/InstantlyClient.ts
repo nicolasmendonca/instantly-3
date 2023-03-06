@@ -1,4 +1,4 @@
-import type { User, Workspace, Task } from "./entities";
+import type { User, Workspace, Task, WorkspaceMemberProfile } from "./entities";
 
 type UnsubscribeFn = () => void;
 
@@ -12,7 +12,19 @@ export interface InstantlyClient {
   logout: () => Promise<void>;
 
   // Workspaces
+  getWorkspace: ({
+    workspaceId,
+  }: {
+    workspaceId: Workspace["id"];
+  }) => Promise<Workspace>;
   createNewWorkspace: (name: string) => Promise<Workspace["id"]>;
+  getWorkspaceMemberProfile: ({
+    workspaceId,
+    memberId,
+  }: {
+    workspaceId: Workspace["id"];
+    memberId: User["id"];
+  }) => Promise<WorkspaceMemberProfile>;
 
   // Tasks
   getTasksForWorkspace: ({
