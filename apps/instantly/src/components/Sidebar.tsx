@@ -27,7 +27,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "src/features/auth/AuthProvider";
 import { useWorkspace } from "src/features/workspaces/useWorkspace";
 import { useWorkspaceMemberProfile } from "src/features/profile/useWorkspaceMemberProfile";
-import { SidebarContent } from "./SidebarContent";
+import { SidebarContent, SIDEBAR_WIDTH } from "./SidebarContent";
 
 export const SidebarWithHeader: React.FC<{
   children: React.ReactNode;
@@ -43,7 +43,7 @@ export const SidebarWithHeader: React.FC<{
       <SidebarContent
         workspaceId={workspaceId}
         onClose={onClose}
-        display={{ base: "none", md: "block" }}
+        display={{ base: "none", lg: "block" }}
       />
       <Drawer
         autoFocus={false}
@@ -54,13 +54,12 @@ export const SidebarWithHeader: React.FC<{
         onOverlayClick={onClose}
         size="full"
       >
-        <DrawerContent>
+        <DrawerContent width={SIDEBAR_WIDTH}>
           <SidebarContent workspaceId={workspaceId} onClose={onClose} />
         </DrawerContent>
       </Drawer>
-      {/* mobilenav */}
       <MobileNav onOpen={onOpen} onClose={onClose} />
-      <Box ml={{ base: 0, md: 60 }} p="4">
+      <Box ml={{ base: 0, lg: SIDEBAR_WIDTH }} p="4">
         {children}
       </Box>
     </Box>
@@ -85,18 +84,18 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
 
   return (
     <Flex
-      ml={{ base: 0, md: 60 }}
-      px={{ base: 4, md: 4 }}
+      ml={{ base: 0, lg: SIDEBAR_WIDTH }}
+      px={{ base: 4, lg: 4 }}
       height="20"
       alignItems="center"
       bg={useColorModeValue("white", "gray.900")}
       borderBottomWidth="1px"
       borderBottomColor={useColorModeValue("gray.200", "gray.700")}
-      justifyContent={{ base: "space-between", md: "flex-end" }}
+      justifyContent={{ base: "space-between", lg: "flex-end" }}
       {...rest}
     >
       <IconButton
-        display={{ base: "flex", md: "none" }}
+        display={{ base: "flex", lg: "none" }}
         onClick={onOpen}
         variant="outline"
         aria-label="open menu"
@@ -104,14 +103,14 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
       />
 
       <Text
-        display={{ base: "flex", md: "none" }}
+        display={{ base: "flex", lg: "none" }}
         fontSize="2xl"
         fontWeight="bold"
       >
         {workspace?.name}
       </Text>
 
-      <HStack spacing={{ base: "0", md: "4" }}>
+      <HStack spacing={{ base: "0", lg: "4" }}>
         <IconButton
           size="lg"
           variant="ghost"
@@ -129,7 +128,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
               transition="all 0.3s ease-in-out"
               rounded="lg"
               _focus={{ boxShadow: "none" }}
-              _hover={{ bg: "cyan.600" }}
+              _hover={{ bg: useColorModeValue("cyan.400", "cyan.600") }}
             >
               <HStack>
                 <Avatar
@@ -139,7 +138,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
                   src={workspaceMemberProfile?.avatarUrl}
                 />
                 <VStack
-                  display={{ base: "none", md: "flex" }}
+                  display={{ base: "none", lg: "flex" }}
                   alignItems="flex-start"
                   spacing="1px"
                   ml="2"
@@ -154,7 +153,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
                     {workspaceMemberProfile?.role}
                   </Text>
                 </VStack>
-                <Box display={{ base: "none", md: "flex" }}>
+                <Box display={{ base: "none", lg: "flex" }}>
                   <FiChevronDown />
                 </Box>
               </HStack>

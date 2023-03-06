@@ -1,23 +1,25 @@
+import React from "react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 import { Link as RRDLink, useLocation, useNavigate } from "react-router-dom";
 import {
   IconButton,
-  Avatar,
   Box,
   CloseButton,
   Flex,
   useColorModeValue,
-  Button,
   Tooltip,
   Heading,
   FlexProps,
   Link,
   BoxProps,
+  Divider,
 } from "@chakra-ui/react";
 import { useWorkspace } from "src/features/workspaces/useWorkspace";
 import { useProjects } from "src/features/projects/useProjects";
 import { Workspace } from "instantly-client";
 import { CreateProjectButton } from "./CreateProjectButton";
+
+export const SIDEBAR_WIDTH = 80;
 
 interface SidebarProps extends BoxProps {
   workspaceId: Workspace["id"];
@@ -33,65 +35,73 @@ export const SidebarContent = ({
   const { data: projects, mutate: mutateProjects } = useProjects({
     workspaceId,
   });
+  const sidebarBg = useColorModeValue("white", "gray.900");
   const navigate = useNavigate();
+
   return (
     <Box
+      maxHeight="100dvh"
+      overflowY="auto"
       transition=".3s ease-in-out"
-      bg={useColorModeValue("white", "gray.900")}
+      bg={sidebarBg}
       borderRight="1px"
       borderRightColor={useColorModeValue("gray.200", "gray.700")}
-      w={{ base: "full", md: 60 }}
+      w={{ base: "full", lg: SIDEBAR_WIDTH }}
       pos="fixed"
       h="full"
       {...rest}
     >
-      <Tooltip label="Back to workspaces" placement="right">
-        <IconButton
-          my={2}
-          mx={8}
-          to="/workspaces"
-          aria-label="Back to workspaces"
-          as={RRDLink}
-          variant="ghost"
+      <Box position="sticky" top={0} bg={sidebarBg}>
+        <Flex
+          alignItems="center"
+          justifyContent={{ base: "space-between", lg: "start" }}
+          gap={4}
+          pt={1}
         >
-          <ArrowBackIcon height={5} width={5} />
-        </IconButton>
-      </Tooltip>
-      <Flex
-        h="20"
-        alignItems="center"
-        mx="8"
-        justifyContent="space-between"
-        gap={4}
-      >
-        <Tooltip label={workspace?.name}>
-          <Avatar src={workspace?.avatarUrl} />
-        </Tooltip>
-        <Heading
-          size={{ base: "md", md: "xs" }}
-          transition="all .3s ease-in-out"
-        >
-          {workspace?.name}
-        </Heading>
-        <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
-      </Flex>
-      {projects?.map((project) => (
-        <NavItem
-          onLinkClicked={onClose}
-          key={project.id}
-          url={`/workspaces/${workspaceId}/projects/${project.id}`}
-        >
-          {project.emoji ? `${project.emoji} ${project.name}` : project.name}
-        </NavItem>
-      ))}
-      <Box mx="4" my="4">
-        <CreateProjectButton
-          workspaceId={workspaceId}
-          onProjectCreated={(projectId) => {
-            navigate(`/workspaces/${workspaceId}/projects/${projectId}`);
-            mutateProjects();
-          }}
-        />
+          <Tooltip label="Back to workspaces">
+            <IconButton
+              my={2}
+              to="/workspaces"
+              aria-label="Back to workspaces"
+              as={RRDLink}
+              variant="ghost"
+            >
+              <ArrowBackIcon height={5} width={5} />
+            </IconButton>
+          </Tooltip>
+          <Heading
+            size={{ base: "lg", lg: "xs" }}
+            transition="all .3s ease-in-out"
+          >
+            {workspace?.name}
+          </Heading>
+          <CloseButton
+            display={{ base: "flex", lg: "none" }}
+            onClick={onClose}
+          />
+        </Flex>
+        <Box mx="4" my="4">
+          <CreateProjectButton
+            workspaceId={workspaceId}
+            onProjectCreated={(projectId) => {
+              navigate(`/workspaces/${workspaceId}/projects/${projectId}`);
+              mutateProjects();
+            }}
+          />
+        </Box>
+        <Divider />
+      </Box>
+
+      <Box pt={2}>
+        {projects?.map((project) => (
+          <NavItem
+            onLinkClicked={onClose}
+            key={project.id}
+            url={`/workspaces/${workspaceId}/projects/${project.id}`}
+          >
+            {project.emoji ? `${project.emoji} ${project.name}` : project.name}
+          </NavItem>
+        ))}
       </Box>
     </Box>
   );
@@ -104,11 +114,19 @@ interface NavItemProps extends FlexProps {
 }
 const NavItem = ({ children, url, onLinkClicked, ...rest }: NavItemProps) => {
   const location = useLocation();
-  const activeLinkColor = useColorModeValue("cyan.50", "cyan.800");
+  const activeLinkColor = useColorModeValue("cyan.300", "cyan.800");
+  const hoverColor = useColorModeValue("cyan.400", "cyan.600");
+  const hoverTextColor = useColorModeValue("black", "white");
 
   const isActiveRoute = location.pathname === url;
   return (
-    <Link as={RRDLink} to={url} textDecor="none" onClick={onLinkClicked}>
+    <Link
+      as={RRDLink}
+      to={url}
+      textDecoration="none !important"
+      onClick={onLinkClicked}
+      fontSize="sm"
+    >
       <Flex
         align="center"
         px="4"
@@ -120,9 +138,10 @@ const NavItem = ({ children, url, onLinkClicked, ...rest }: NavItemProps) => {
         cursor="pointer"
         transition="all .2s ease-in-out"
         bgColor={isActiveRoute ? activeLinkColor : "transparent"}
+        textDecoration="none"
         _hover={{
-          bg: "cyan.600",
-          color: "white",
+          bg: hoverColor,
+          color: hoverTextColor,
         }}
         {...rest}
       >

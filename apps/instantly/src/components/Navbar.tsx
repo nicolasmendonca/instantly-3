@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 import {
   Box,
   Flex,
@@ -14,28 +14,29 @@ import {
   Stack,
   useColorMode,
   Center,
-} from '@chakra-ui/react';
-import { MoonIcon, SunIcon } from '@chakra-ui/icons';
-import { useAuth } from 'src/features/auth/AuthProvider';
+} from "@chakra-ui/react";
+import { MoonIcon, SunIcon } from "@chakra-ui/icons";
+import { useAuth } from "src/features/auth/AuthProvider";
 
 export const NavLink = ({ children }: { children: ReactNode }) => (
   <Link
     px={2}
     py={1}
-    rounded={'md'}
+    rounded={"md"}
+    textDecor="none"
     _hover={{
-      textDecoration: 'none',
-      bg: useColorModeValue('gray.200', 'gray.700'),
+      bg: useColorModeValue("gray.200", "gray.700"),
     }}
-    href={'#'}>
+    href={"#"}
+  >
     {children}
   </Link>
 );
 
 export const Navbar: React.FC = () => {
-  const { logout, user } = useAuth()
+  const { logout, user } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
-  const boxBg = useColorModeValue('gray.100', 'gray.900')
+  const boxBg = useColorModeValue("gray.100", "gray.900");
 
   if (!user) return null;
 
@@ -45,30 +46,31 @@ export const Navbar: React.FC = () => {
         <div className="flex h-12 items-center justify-between max-w-screen-lg mx-auto">
           <div>Logo</div>
 
-          <Flex alignItems={'center'}>
-            <Stack direction={'row'} spacing={7}>
+          <Flex alignItems={"center"}>
+            <Stack direction={"row"} spacing={7}>
               <Button onClick={toggleColorMode}>
-                {colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+                {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
               </Button>
 
               <Menu>
                 <MenuButton
                   as={Button}
-                  rounded={'full'}
-                  variant={'link'}
-                  cursor={'pointer'}
-                  minW={0}>
+                  rounded={"full"}
+                  variant={"link"}
+                  cursor={"pointer"}
+                  minW={0}
+                >
                   <Avatar
-                    size={'sm'}
-                    src={'https://avatars.dicebear.com/api/male/username.svg'}
-                    />
+                    size={"sm"}
+                    src={"https://avatars.dicebear.com/api/male/username.svg"}
+                  />
                 </MenuButton>
-                <MenuList alignItems={'center'}>
+                <MenuList alignItems={"center"}>
                   <br />
                   <Center>
                     <Avatar
-                      size={'2xl'}
-                      src={'https://avatars.dicebear.com/api/male/username.svg'}
+                      size={"2xl"}
+                      src={"https://avatars.dicebear.com/api/male/username.svg"}
                     />
                   </Center>
                   <br />
@@ -83,8 +85,8 @@ export const Navbar: React.FC = () => {
               </Menu>
             </Stack>
           </Flex>
-      </div>
+        </div>
       </Box>
     </>
   );
-}
+};

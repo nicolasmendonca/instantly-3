@@ -22,6 +22,7 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
 }) => {
   const [isCreatingProject, setIsCreatingProject] = useBoolean(false);
   const inputBg = useColorModeValue("gray.100", "gray.600");
+  const buttonHoverBgColor = useColorModeValue("cyan.400", "cyan.600");
   const {
     handleSubmit,
     register,
@@ -68,8 +69,8 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
         size="sm"
         py={5}
         borderWidth={1}
-        borderColor="gray.500"
-        _hover={{ bg: "cyan.700" }}
+        shadow="md"
+        _hover={{ bg: buttonHoverBgColor }}
       >
         Create Project
       </Button>
