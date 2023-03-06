@@ -1,5 +1,4 @@
-import type { User } from "./entities/User";
-import type { Workspace } from "./entities/Workspace";
+import type { User, Workspace, Task } from "./entities";
 
 type UnsubscribeFn = () => void;
 
@@ -14,4 +13,11 @@ export interface InstantlyClient {
 
   // Workspaces
   createNewWorkspace: (name: string) => Promise<Workspace["id"]>;
+
+  // Tasks
+  getTasksForWorkspace: ({
+    workspaceId,
+  }: {
+    workspaceId: Workspace["id"];
+  }) => Promise<Task[]>;
 }

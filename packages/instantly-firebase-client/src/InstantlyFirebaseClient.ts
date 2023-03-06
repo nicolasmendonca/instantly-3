@@ -1,4 +1,4 @@
-import type { InstantlyClient, Workspace } from "instantly-client";
+import type { InstantlyClient, Task, Workspace } from "instantly-client";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
   addDoc,
@@ -8,6 +8,8 @@ import {
   initializeFirestore,
   runTransaction,
   type Firestore,
+  query,
+  getDocs,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import {
@@ -40,6 +42,9 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     getAnalytics(this.app);
   }
 
+  /**
+   * Authentication
+   */
   public subscribeToAuthState: InstantlyClient["subscribeToAuthState"] = (
     onLogin,
     onLogout
@@ -83,6 +88,9 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     await this.auth.signOut();
   };
 
+  /**
+   * Workspaces
+   */
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
   ): Promise<Workspace["id"]> => {
@@ -110,6 +118,18 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     );
     return workspaceDoc.id;
   };
+
+  public getTasksForWorkspace: InstantlyClient["getTasksForWorkspace"] =
+    async ({ workspaceId }: { workspaceId: Workspace["id"] }) => {
+      let tasks: Task[] = [];
+      const _collection = await getDocs(
+        collection(this.firestore, "workspaces", workspaceId, "tasks")
+      );
+      _collection.forEach((doc) => {
+        tasks.push({ id: doc.id, ...doc.data() } as Task);
+      });
+      return tasks;
+    };
 }
 
 type TypesPerFirestorePath = {
@@ -124,5 +144,9 @@ type TypesPerFirestorePath = {
   "/workspaces/:workspaceId": {
     name: string;
     avatarUrl: string;
+  };
+  "/workspaces/:workspaceId/tasks/:taskId": {
+    title: string;
+    description: string;
   };
 };

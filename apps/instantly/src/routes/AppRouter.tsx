@@ -4,18 +4,8 @@ import {
   redirect,
   RouterProvider,
 } from "react-router-dom";
-import { Navbar } from "../components/Navbar";
-import { NewWorkspacePage } from "./workspaces/new";
-import { WorkspaceIdPage } from "./workspaces/[workspaceId]";
-
-const WorkspacesLayout: React.FC = () => {
-  return (
-    <>
-      <Navbar />
-      <Outlet />
-    </>
-  );
-};
+import { NewWorkspacePage } from "./workspaces/new/+page";
+import { WorkspaceIdPage } from "./workspaces/[workspaceId]/+page";
 
 const router = createBrowserRouter([
   {
@@ -26,7 +16,6 @@ const router = createBrowserRouter([
   },
   {
     path: "/workspaces",
-    element: <WorkspacesLayout />,
     children: [
       {
         path: "new",
