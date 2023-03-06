@@ -1,6 +1,8 @@
 import type {
   InstantlyClient,
+  Project,
   Task,
+  User,
   Workspace,
   WorkspaceMemberProfile,
 } from "instantly-client";
@@ -132,7 +134,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         ),
         {
           role,
-          name,
+          workspaceName: name,
         } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
       ),
       setDoc(
@@ -145,7 +147,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         ),
         {
           role,
-          avatarUrl,
+          avatarUrl: this.auth.currentUser!.photoURL!,
           name: this.auth.currentUser!.displayName ?? "Anon",
         } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]
       ),
@@ -178,28 +180,36 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         ...(workspaceMemberProfileDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]),
       };
     };
+
+  /**
+   * Projects
+   */
+  public getProjectsForWorkspace: InstantlyClient["getProjectsForWorkspace"] =
+    async ({ workspaceId }) => {
+      const projectsCollection = await getDocs(
+        collection(this.firestore, "workspaces", workspaceId, "projects")
+      );
+
+      return projectsCollection.docs.map((doc) => {
+        return {
+          id: doc.id,
+          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects"]),
+        };
+      });
+    };
 }
 
 type TypesPerFirestorePath = {
-  "/users/:userId": {
-    name: string;
-    avatarUrl: string;
-  };
+  "/users/:userId": Omit<User, "id">;
   "/users/:userId/workspaces/:workspaceId": {
     role: WorkspaceMemberProfile["role"];
-    name: string;
+    workspaceName: string;
   };
-  "/workspaces/:workspaceId": {
-    name: string;
-    avatarUrl: string;
-  };
-  "/workspaces/:workspaceId/members/:memberId": {
-    role: WorkspaceMemberProfile["role"];
-    name: string;
-    avatarUrl: string;
-  };
-  "/workspaces/:workspaceId/tasks/:taskId": {
-    title: string;
-    description: string;
-  };
+  "/workspaces/:workspaceId": Omit<Workspace, "id">;
+  "/workspaces/:workspaceId/members/:memberId": Omit<
+    WorkspaceMemberProfile,
+    "id"
+  >;
+  "/workspaces/:workspaceId/projects": Omit<Project, "id">;
+  "/workspaces/:workspaceId/tasks/:taskId": Omit<Task, "id">;
 };

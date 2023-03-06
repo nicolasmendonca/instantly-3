@@ -31,6 +31,7 @@ import { useAuth } from "../../../features/auth/AuthProvider";
 import { useWorkspace } from "../../../features/workspaces/useWorkspace";
 import { useParams } from "react-router-dom";
 import { useWorkspaceMemberProfile } from "../../../features/profile/useWorkspaceMemberProfile";
+import { useProjects } from "../../../features/projects/useProjects";
 
 export const SidebarWithHeader: React.FC<{
   children: React.ReactNode;
@@ -71,7 +72,7 @@ interface SidebarProps extends BoxProps {
 
 const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
   const { data: workspace } = useWorkspace({ workspaceId });
-  const { data: tasks } = useWorkspaceTasks({ workspaceId });
+  const { data: projects } = useProjects({ workspaceId });
   return (
     <Box
       transition=".3s ease-in-out"
@@ -98,11 +99,16 @@ const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
           borderColor="gray.500"
           _hover={{ bg: "cyan.700" }}
         >
-          Create Task
+          Create Project
         </Button>
       </Box>
-      {tasks?.map((task) => (
-        <NavItem key={task.id}>{task.title}</NavItem>
+      {projects?.map((project) => (
+        <NavItem
+          key={project.id}
+          url={`/workspaces/${workspaceId}/projects/${project.id}`}
+        >
+          {project.emoji ? `${project.emoji} ${project.name}` : project.name}
+        </NavItem>
       ))}
     </Box>
   );
@@ -110,11 +116,12 @@ const SidebarContent = ({ workspaceId, ...rest }: SidebarProps) => {
 
 interface NavItemProps extends FlexProps {
   children: React.ReactNode;
+  url: string;
 }
-const NavItem = ({ children, ...rest }: NavItemProps) => {
+const NavItem = ({ children, url, ...rest }: NavItemProps) => {
   return (
     <Link
-      href="#"
+      href={url}
       style={{ textDecoration: "none" }}
       _focus={{ boxShadow: "none" }}
     >
@@ -216,7 +223,7 @@ const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
                   <Text
                     className="group-hover:text-white transition-colors"
                     fontSize="xs"
-                    color="gray.600"
+                    color="gray.500"
                     textTransform="capitalize"
                   >
                     {workspaceMemberProfile?.role}
