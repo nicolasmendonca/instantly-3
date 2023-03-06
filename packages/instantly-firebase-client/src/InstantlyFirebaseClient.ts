@@ -208,10 +208,27 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       return projectsCollection.docs.map((doc) => {
         return {
           id: doc.id,
-          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects"]),
+          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]),
         };
       });
     };
+
+  public createProject: InstantlyClient["createProject"] = async ({
+    workspaceId,
+    name,
+  }): Promise<Project["id"]> => {
+    const projectCollection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects"
+    );
+    const projectDoc = await addDoc(projectCollection, {
+      name,
+      emoji: "📝",
+    } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]);
+    return projectDoc.id;
+  };
 }
 
 type TypesPerFirestorePath = {
@@ -222,6 +239,6 @@ type TypesPerFirestorePath = {
     WorkspaceMemberProfile,
     "id"
   >;
-  "/workspaces/:workspaceId/projects": Omit<Project, "id">;
+  "/workspaces/:workspaceId/projects/:projectId": Omit<Project, "id">;
   "/workspaces/:workspaceId/tasks/:taskId": Omit<Task, "id">;
 };

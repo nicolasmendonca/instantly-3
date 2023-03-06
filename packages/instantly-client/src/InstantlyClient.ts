@@ -43,6 +43,13 @@ export interface InstantlyClient {
   }: {
     workspaceId: Workspace["id"];
   }) => Promise<Project[]>;
+  createProject: ({
+    workspaceId,
+    name,
+  }: {
+    workspaceId: Workspace["id"];
+    name: string;
+  }) => Promise<Project["id"]>;
 
   // Tasks
   getTasksForWorkspace: ({

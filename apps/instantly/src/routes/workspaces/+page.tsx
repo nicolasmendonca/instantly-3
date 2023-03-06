@@ -18,7 +18,6 @@ interface IWorkspacesPageProps {}
 
 const WorkspacesPage: React.FC<IWorkspacesPageProps> = () => {
   const { data: workspaces } = useWorkspaces();
-  console.log("🚀 ~ file: +page.tsx:9 ~ workspaces:", workspaces);
 
   return (
     <Center height="100dvh">

@@ -1,21 +1,17 @@
 import React from "react";
-import { ArrowBackIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
-import { Link as RRDLink } from "react-router-dom";
+import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import {
   IconButton,
   Avatar,
   Box,
-  CloseButton,
   Flex,
   HStack,
   VStack,
   useColorModeValue,
-  Link,
   Drawer,
   DrawerContent,
   Text,
   useDisclosure,
-  BoxProps,
   FlexProps,
   Menu,
   MenuButton,
@@ -24,26 +20,26 @@ import {
   MenuList,
   Button,
   useColorMode,
-  Tooltip,
-  Center,
-  Heading,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
 import { Workspace } from "instantly-client";
-import { useWorkspaceTasks } from "./useWorkspaceTasks";
-import { useAuth } from "../../../features/auth/AuthProvider";
-import { useWorkspace } from "../../../features/workspaces/useWorkspace";
 import { useParams } from "react-router-dom";
-import { useWorkspaceMemberProfile } from "../../../features/profile/useWorkspaceMemberProfile";
-import { useProjects } from "../../../features/projects/useProjects";
+import { useAuth } from "src/features/auth/AuthProvider";
+import { useWorkspace } from "src/features/workspaces/useWorkspace";
+import { useWorkspaceMemberProfile } from "src/features/profile/useWorkspaceMemberProfile";
+import { SidebarContent } from "./SidebarContent";
 
 export const SidebarWithHeader: React.FC<{
   children: React.ReactNode;
-  workspaceId: Workspace["id"];
-}> = ({ children, workspaceId }) => {
+}> = ({ children }) => {
+  const { workspaceId } = useParams<{ workspaceId: Workspace["id"] }>();
+  const sidebarBg = useColorModeValue("gray.100", "gray.900");
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  if (!workspaceId) return null;
+
   return (
-    <Box minH="100vh" bg={useColorModeValue("gray.100", "gray.900")}>
+    <Box minH="100vh" bg={sidebarBg}>
       <SidebarContent
         workspaceId={workspaceId}
         onClose={onClose}
@@ -68,111 +64,6 @@ export const SidebarWithHeader: React.FC<{
         {children}
       </Box>
     </Box>
-  );
-};
-
-interface SidebarProps extends BoxProps {
-  workspaceId: Workspace["id"];
-  onClose: () => void;
-}
-
-const SidebarContent = ({ workspaceId, onClose, ...rest }: SidebarProps) => {
-  const { data: workspace } = useWorkspace({ workspaceId });
-  const { data: projects } = useProjects({ workspaceId });
-  return (
-    <Box
-      transition=".3s ease-in-out"
-      bg={useColorModeValue("white", "gray.900")}
-      borderRight="1px"
-      borderRightColor={useColorModeValue("gray.200", "gray.700")}
-      w={{ base: "full", md: 60 }}
-      pos="fixed"
-      h="full"
-      {...rest}
-    >
-      <Tooltip label="Back to workspaces" placement="right">
-        <IconButton
-          my={2}
-          mx={8}
-          to="/workspaces"
-          aria-label="Back to workspaces"
-          as={RRDLink}
-          variant="ghost"
-        >
-          <ArrowBackIcon height={5} width={5} />
-        </IconButton>
-      </Tooltip>
-      <Flex
-        h="20"
-        alignItems="center"
-        mx="8"
-        justifyContent="space-between"
-        gap={4}
-      >
-        <Tooltip label={workspace?.name}>
-          <Avatar src={workspace?.avatarUrl} />
-        </Tooltip>
-        <Heading
-          size={{ base: "md", md: "xs" }}
-          transition="all .3s ease-in-out"
-        >
-          {workspace?.name}
-        </Heading>
-        <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
-      </Flex>
-      {projects?.map((project) => (
-        <NavItem
-          key={project.id}
-          url={`/workspaces/${workspaceId}/projects/${project.id}`}
-        >
-          {project.emoji ? `${project.emoji} ${project.name}` : project.name}
-        </NavItem>
-      ))}
-      <Box mx="8" my="4">
-        <Button
-          width="full"
-          variant="ghost"
-          size="sm"
-          py={4}
-          borderWidth={1}
-          borderColor="gray.500"
-          _hover={{ bg: "cyan.700" }}
-        >
-          Create Project
-        </Button>
-      </Box>
-    </Box>
-  );
-};
-
-interface NavItemProps extends FlexProps {
-  children: React.ReactNode;
-  url: string;
-}
-const NavItem = ({ children, url, ...rest }: NavItemProps) => {
-  return (
-    <Link
-      as={RRDLink}
-      to={url}
-      style={{ textDecoration: "none" }}
-      _focus={{ boxShadow: "none" }}
-    >
-      <Flex
-        align="center"
-        p="4"
-        mx="4"
-        borderRadius="lg"
-        role="group"
-        cursor="pointer"
-        _hover={{
-          bg: "cyan.600",
-          color: "white",
-        }}
-        {...rest}
-      >
-        {children}
-      </Flex>
-    </Link>
   );
 };
 
@@ -243,6 +134,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
               <HStack>
                 <Avatar
                   ml={[0, 2]}
+                  mr={[0, 2]}
                   size={"sm"}
                   src={workspaceMemberProfile?.avatarUrl}
                 />
