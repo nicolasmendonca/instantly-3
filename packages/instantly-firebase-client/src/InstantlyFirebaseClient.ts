@@ -22,7 +22,7 @@ import { getAnalytics } from "firebase/analytics";
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
   Unsubscribe,
   type Auth,
 } from "firebase/auth";
@@ -73,7 +73,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   public loginWithGoogle: InstantlyClient["loginWithGoogle"] =
     async (): Promise<void> => {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(this.auth, provider);
+      await signInWithRedirect(this.auth, provider);
       const currentUser = this.auth.currentUser;
 
       if (currentUser) {
