@@ -15,7 +15,7 @@ const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
   };
 
   return (
-    <Center height="calc(100dvh - 48px)">
+    <Center height="100dvh">
       <Box
         w="container.xs"
         borderWidth={1}

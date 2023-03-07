@@ -170,21 +170,6 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     return workspaceDoc.id;
   };
 
-  public getTasksForWorkspace: InstantlyClient["getTasksForWorkspace"] =
-    async ({ workspaceId }: { workspaceId: Workspace["id"] }) => {
-      let tasks: Task[] = [];
-      const _collection = await getDocs(
-        collection(this.firestore, "workspaces", workspaceId, "tasks")
-      );
-      _collection.forEach((doc) => {
-        tasks.push({
-          id: doc.id,
-          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/tasks/:taskId"]),
-        });
-      });
-      return tasks;
-    };
-
   public getWorkspaceMemberProfile: InstantlyClient["getWorkspaceMemberProfile"] =
     async ({ workspaceId, memberId }): Promise<WorkspaceMemberProfile> => {
       const workspaceMemberProfileDoc = await getDoc(
@@ -240,6 +225,53 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]);
     return projectDoc.id;
   };
+
+  /**
+   * Tasks
+   */
+
+  public getProjectTasks: InstantlyClient["getProjectTasks"] = async ({
+    workspaceId,
+    projectId,
+  }) => {
+    let tasks: Task[] = [];
+    const _collection = await getDocs(
+      collection(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "tasks"
+      )
+    );
+    _collection.forEach((doc) => {
+      tasks.push({
+        id: doc.id,
+        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
+      });
+    });
+    return tasks;
+  };
+
+  public updateTask: InstantlyClient["updateTask"] = async (
+    { workspaceId, projectId, taskId },
+    task
+  ): Promise<void> => {
+    const { id, ...taskWithoutId } = task;
+    await setDoc(
+      doc(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "tasks",
+        taskId
+      ),
+      taskWithoutId satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+    );
+  };
 }
 
 type TypesPerFirestorePath = {
@@ -251,5 +283,8 @@ type TypesPerFirestorePath = {
     "id"
   >;
   "/workspaces/:workspaceId/projects/:projectId": Omit<Project, "id">;
-  "/workspaces/:workspaceId/tasks/:taskId": Omit<Task, "id">;
+  "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId": Omit<
+    Task,
+    "id"
+  >;
 };

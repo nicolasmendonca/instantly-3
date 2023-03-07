@@ -59,9 +59,23 @@ export interface InstantlyClient {
   }) => Promise<Project["id"]>;
 
   // Tasks
-  getTasksForWorkspace: ({
+  getProjectTasks: ({
     workspaceId,
+    projectId,
   }: {
     workspaceId: Workspace["id"];
+    projectId: Project["id"];
   }) => Promise<Task[]>;
+  updateTask: (
+    {
+      workspaceId,
+      projectId,
+      taskId,
+    }: {
+      taskId: Task["id"];
+      workspaceId: Workspace["id"];
+      projectId: Project["id"];
+    },
+    task: Task
+  ) => Promise<void>;
 }

@@ -20,6 +20,7 @@ import {
   MenuList,
   Button,
   useColorMode,
+  Img,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
 import { Workspace } from "instantly-client";
@@ -33,7 +34,7 @@ export const SidebarWithHeader: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
   const { workspaceId } = useParams<{ workspaceId: Workspace["id"] }>();
-  const sidebarBg = useColorModeValue("gray.100", "gray.900");
+  const sidebarBg = useColorModeValue("white", "gray.900");
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   if (!workspaceId) return null;
@@ -59,9 +60,7 @@ export const SidebarWithHeader: React.FC<{
         </DrawerContent>
       </Drawer>
       <MobileNav onOpen={onOpen} onClose={onClose} />
-      <Box ml={{ base: 0, lg: SIDEBAR_WIDTH }} p="4">
-        {children}
-      </Box>
+      <Box ml={{ base: 0, lg: SIDEBAR_WIDTH }}>{children}</Box>
     </Box>
   );
 };
@@ -86,7 +85,7 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
     <Flex
       ml={{ base: 0, lg: SIDEBAR_WIDTH }}
       px={{ base: 4, lg: 4 }}
-      height="20"
+      height="80px"
       alignItems="center"
       bg={useColorModeValue("white", "gray.900")}
       borderBottomWidth="1px"
@@ -131,10 +130,14 @@ const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
               _hover={{ bg: useColorModeValue("cyan.400", "cyan.600") }}
             >
               <HStack>
-                <Avatar
+                <Img
+                  alt=""
+                  w="12"
+                  h="12"
+                  rounded="full"
                   ml={[0, 2]}
                   mr={[0, 2]}
-                  size={"sm"}
+                  referrerPolicy="no-referrer"
                   src={workspaceMemberProfile?.avatarUrl}
                 />
                 <VStack

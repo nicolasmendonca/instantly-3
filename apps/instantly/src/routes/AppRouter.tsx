@@ -1,3 +1,4 @@
+import { Center, Heading } from "@chakra-ui/react";
 import React from "react";
 import {
   createBrowserRouter,
@@ -46,6 +47,14 @@ const router = createBrowserRouter([
         element: <ProjectIdPage />,
       },
     ],
+  },
+  {
+    path: "*",
+    element: (
+      <Center height="100dvh">
+        <Heading>Not found 😓</Heading>
+      </Center>
+    ),
   },
 ]);
 
