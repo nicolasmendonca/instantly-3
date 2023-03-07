@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react";
 import { Project, Workspace } from "instantly-client";
 import { useForm } from "react-hook-form";
-import { instantlyClient } from "../clients/instantlyClient";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 interface ICreateProjectButtonProps {
   workspaceId: Workspace["id"];
@@ -20,6 +20,7 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
   workspaceId,
   onProjectCreated,
 }) => {
+  const instantlyClient = useInstantlyClient();
   const [isCreatingProject, setIsCreatingProject] = useBoolean(false);
   const inputBg = useColorModeValue("gray.100", "gray.600");
   const buttonHoverBgColor = useColorModeValue("cyan.400", "cyan.600");

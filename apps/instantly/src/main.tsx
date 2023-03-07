@@ -12,6 +12,7 @@ import App from "./App";
 
 import "./index.css";
 import { SWRConfig } from "swr";
+import { InstantlyClientProvider } from "./features/clients/useInstantlyClient";
 
 const themeConfig: ThemeConfig = {
   initialColorMode: "dark",
@@ -36,9 +37,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             </Center>
           }
         >
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <InstantlyClientProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </InstantlyClientProvider>
         </Suspense>
       </SWRConfig>
     </ChakraProvider>

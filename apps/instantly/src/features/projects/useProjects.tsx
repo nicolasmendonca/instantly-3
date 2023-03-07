@@ -1,15 +1,13 @@
 import useSWR, { SWRResponse } from "swr";
-import {
-  instantlyClient,
-  Project,
-  Workspace,
-} from "../../clients/instantlyClient";
+import { Project, Workspace } from "src/features/clients/instantlyClient";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 export const useProjects = ({
   workspaceId,
 }: {
   workspaceId: Workspace["id"];
 }): SWRResponse<Project[], any, any> => {
+  const instantlyClient = useInstantlyClient();
   return useSWR<
     Project[],
     any,

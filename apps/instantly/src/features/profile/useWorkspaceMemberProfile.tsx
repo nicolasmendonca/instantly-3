@@ -1,10 +1,10 @@
 import useSWR, { SWRResponse } from "swr";
 import {
-  instantlyClient,
   User,
   Workspace,
   WorkspaceMemberProfile,
-} from "../../clients/instantlyClient";
+} from "src/features/clients/instantlyClient";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 export const useWorkspaceMemberProfile = ({
   workspaceId,
@@ -13,6 +13,7 @@ export const useWorkspaceMemberProfile = ({
   workspaceId: Workspace["id"];
   memberId: User["id"];
 }): SWRResponse<WorkspaceMemberProfile, any, any> => {
+  const instantlyClient = useInstantlyClient();
   return useSWR<
     WorkspaceMemberProfile,
     any,

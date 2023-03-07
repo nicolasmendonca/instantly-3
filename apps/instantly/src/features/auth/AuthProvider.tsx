@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { instantlyClient, type User } from "src/clients/instantlyClient";
+import { type User } from "src/features/clients/instantlyClient";
+import { useInstantlyClient } from "../clients/useInstantlyClient";
 
 const useInstantlyClientAuth = () => {
   const [user, setUser] = useState<User>();
+  const instantlyClient = useInstantlyClient();
 
   React.useEffect(() => {
     const unsubscribe = instantlyClient.subscribeToAuthState(setUser, () =>

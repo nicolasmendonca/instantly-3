@@ -1,12 +1,13 @@
-import { Workspace } from "instantly-client";
 import useSWR from "swr";
-import { instantlyClient } from "src/clients/instantlyClient";
+import { Workspace } from "instantly-client";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 export const useWorkspaceTasks = ({
   workspaceId,
 }: {
   workspaceId: Workspace["id"];
 }) => {
+  const instantlyClient = useInstantlyClient();
   return useSWR(`/api/workspaces/${workspaceId}/tasks`, async () =>
     instantlyClient.getTasksForWorkspace({ workspaceId })
   );
