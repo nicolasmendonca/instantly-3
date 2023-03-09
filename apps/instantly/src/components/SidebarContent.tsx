@@ -1,8 +1,7 @@
 import React from "react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
-import { Link as RRDLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
-  IconButton,
   Box,
   CloseButton,
   Flex,
@@ -10,7 +9,6 @@ import {
   Tooltip,
   Heading,
   FlexProps,
-  Link,
   BoxProps,
   Divider,
 } from "@chakra-ui/react";
@@ -18,6 +16,7 @@ import { useWorkspace } from "src/features/workspaces/useWorkspace";
 import { useProjects } from "src/features/projects/useProjects";
 import { Workspace } from "instantly-client";
 import { CreateProjectButton } from "./CreateProjectButton";
+import { Link } from "./Link";
 
 export const SIDEBAR_WIDTH = 80;
 
@@ -58,17 +57,11 @@ export const SidebarContent = ({
           gap={4}
           pt={1}
         >
-          <Tooltip label="Back to workspaces">
-            <IconButton
-              my={2}
-              to="/workspaces"
-              aria-label="Back to workspaces"
-              as={RRDLink}
-              variant="ghost"
-            >
+          <Link to="/workspaces" py={2} pl={4}>
+            <Tooltip label="Back to workspaces">
               <ArrowBackIcon height={5} width={5} />
-            </IconButton>
-          </Tooltip>
+            </Tooltip>
+          </Link>
           <Heading
             size={{ base: "lg", lg: "xs" }}
             transition="all .3s ease-in-out"
@@ -121,7 +114,6 @@ const NavItem = ({ children, url, onLinkClicked, ...rest }: NavItemProps) => {
   const isActiveRoute = location.pathname === url;
   return (
     <Link
-      as={RRDLink}
       to={url}
       textDecoration="none !important"
       onClick={onLinkClicked}

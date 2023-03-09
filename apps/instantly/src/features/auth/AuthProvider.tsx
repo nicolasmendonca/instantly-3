@@ -1,19 +1,28 @@
-import React, { useState } from "react";
-import { type User } from "src/features/clients/instantlyClient";
-import { useInstantlyClient } from "../clients/useInstantlyClient";
+import React from "react";
+import useSWR, { SWRResponse } from "swr";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
+import type { User } from "src/features/clients/instantlyClient";
+
+function useAuthUser(): SWRResponse<User | null, any, { key: "auth-user" }> {
+  const instantlyClient = useInstantlyClient();
+  return useSWR<User | null, any, any>(
+    { key: "auth-user" },
+    instantlyClient.getAuthUser
+  );
+}
 
 const useInstantlyClientAuth = () => {
-  const [user, setUser] = useState<User>();
+  const { data: user, mutate: mutateAuthUser, isLoading } = useAuthUser();
   const instantlyClient = useInstantlyClient();
 
   React.useEffect(() => {
-    const unsubscribe = instantlyClient.subscribeToAuthState(setUser, () =>
-      setUser(undefined)
+    const unsubscribe = instantlyClient.subscribeToAuthState(() =>
+      mutateAuthUser(user)
     );
     return () => {
       unsubscribe();
     };
-  }, [setUser]);
+  }, []);
 
   const login = async () => {
     await instantlyClient.loginWithGoogle();
@@ -27,6 +36,7 @@ const useInstantlyClientAuth = () => {
     user,
     login,
     logout,
+    isLoading,
   };
 };
 
@@ -46,8 +56,9 @@ export const AuthProvider: React.FC<{
       user: result.user,
       login: result.login,
       logout: result.logout,
+      isLoading: result.isLoading,
     };
-  }, [result.user]);
+  }, [result.user, result.isLoading]);
 
   return (
     <AuthContext.Provider value={memoized}>{children}</AuthContext.Provider>

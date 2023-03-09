@@ -1,4 +1,4 @@
-import useSWR, { SWRResponse, MutatorOptions } from "swr";
+import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
 import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import produce from "immer";
@@ -24,10 +24,10 @@ type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   ) => Promise<void>;
 };
 
-export function useTasks({
-  workspaceId,
-  projectId,
-}: UseTasksParam): UseProjectTasksReturnType {
+export function useTasks(
+  { workspaceId, projectId }: UseTasksParam,
+  swrConfig: SWRConfiguration = {}
+): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
   const { data, mutate, ...rest } = useSWR<Task[], any, () => UseTasksKey>(
     () => ({
@@ -35,7 +35,8 @@ export function useTasks({
       workspaceId,
       projectId,
     }),
-    instantlyClient.getTasksForProject
+    instantlyClient.getTasksForProject,
+    swrConfig
   );
 
   const updateTask: UseProjectTasksReturnType["updateTask"] = async (

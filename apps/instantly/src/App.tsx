@@ -1,15 +1,19 @@
 import { useAuth } from "src/features/auth/AuthProvider";
 import { LoginPage } from "src/features/auth/LoginPage";
+import { CenteredSpinner } from "./components/CenteredSpinner";
 import { AppRouter } from "./routes/AppRouter";
 
 function App() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (user) {
-    return <AppRouter />;
+  if (isLoading) {
+    return <CenteredSpinner height="100dvh" />;
+  }
+  if (!user) {
+    return <LoginPage />;
   }
 
-  return <LoginPage />;
+  return <AppRouter />;
 }
 
 export default App;

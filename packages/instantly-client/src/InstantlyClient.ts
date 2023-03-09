@@ -10,10 +10,8 @@ type UnsubscribeFn = () => void;
 
 export interface InstantlyClient {
   // Authentication
-  subscribeToAuthState: (
-    onLogin: (user: User) => void,
-    onLogout: () => void
-  ) => UnsubscribeFn;
+  getAuthUser: () => Promise<User | null>;
+  subscribeToAuthState: (callback: () => void) => UnsubscribeFn;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 

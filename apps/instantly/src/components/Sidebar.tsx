@@ -2,7 +2,6 @@ import React from "react";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import {
   IconButton,
-  Avatar,
   Box,
   Flex,
   HStack,

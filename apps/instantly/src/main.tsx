@@ -25,9 +25,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <SWRConfig
         value={{
           suspense: true,
-          revalidateIfStale: false,
-          revalidateOnFocus: false,
-          revalidateOnReconnect: false,
         }}
       >
         <Suspense

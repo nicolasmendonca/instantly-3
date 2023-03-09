@@ -17,8 +17,10 @@ import {
   getDocs,
   getDoc,
   doc,
+  enableIndexedDbPersistence,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+import { getPerformance } from "firebase/performance";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -45,27 +47,39 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     };
     this.app = initializeApp(firebaseConfig);
     this.firestore = initializeFirestore(this.app, {});
+    enableIndexedDbPersistence(this.firestore);
+    getPerformance(this.app);
     this.auth = getAuth(this.app);
     getAnalytics(this.app);
   }
+
+  private async waitForAuthInit() {
+    let unsubscribe: Unsubscribe;
+    await new Promise<void>((resolve) => {
+      unsubscribe = this.auth.onAuthStateChanged((_) => resolve());
+    });
+    (await unsubscribe!)();
+  }
+
+  public getAuthUser: InstantlyClient["getAuthUser"] = async () => {
+    // Firebase needs to wait until onAuthStateChange is initialized before it can resolve the user
+    await this.waitForAuthInit();
+    const currentUser = this.auth.currentUser;
+    return currentUser
+      ? {
+          id: currentUser.uid,
+          name: currentUser.displayName ?? "Anon",
+        }
+      : null;
+  };
 
   /**
    * Authentication
    */
   public subscribeToAuthState: InstantlyClient["subscribeToAuthState"] = (
-    onLogin,
-    onLogout
+    callback
   ): Unsubscribe => {
-    const unsubscribe = this.auth.onAuthStateChanged((user) => {
-      if (user) {
-        onLogin({
-          id: user.uid,
-          name: user.displayName ?? "Anon",
-        });
-      } else {
-        onLogout();
-      }
-    });
+    const unsubscribe = this.auth.onAuthStateChanged(callback);
 
     return unsubscribe;
   };

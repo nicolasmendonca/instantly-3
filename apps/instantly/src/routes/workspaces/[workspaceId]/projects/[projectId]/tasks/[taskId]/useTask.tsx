@@ -1,5 +1,5 @@
 import { Project, Task, Workspace } from "instantly-client";
-import useSWR, { SWRResponse } from "swr";
+import useSWR, { SWRConfiguration, SWRResponse } from "swr";
 import { useAuth } from "src/features/auth/AuthProvider";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
@@ -13,11 +13,10 @@ type UseTaskKey = UseTaskParam & {
   key: "task";
 };
 
-export function useTask({
-  workspaceId,
-  projectId,
-  taskId,
-}: UseTaskParam): SWRResponse<Task, any, UseTaskKey> {
+export function useTask(
+  { workspaceId, projectId, taskId }: UseTaskParam,
+  swrConfig: SWRConfiguration = {}
+): SWRResponse<Task, any, any> {
   const { user } = useAuth();
   const instantlyClient = useInstantlyClient();
   return useSWR<Task, any, () => UseTaskKey>(
@@ -28,6 +27,7 @@ export function useTask({
       projectId,
       taskId,
     }),
-    instantlyClient.getTaskForProject
+    instantlyClient.getTaskForProject,
+    swrConfig
   );
 }

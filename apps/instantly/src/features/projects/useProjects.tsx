@@ -1,4 +1,4 @@
-import useSWR, { SWRResponse } from "swr";
+import useSWR, { SWRConfiguration, SWRResponse } from "swr";
 import { Project, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
@@ -6,9 +6,10 @@ type UseProjectsParam = {
   workspaceId: Workspace["id"];
 };
 
-export function useProjects({
-  workspaceId,
-}: UseProjectsParam): SWRResponse<Project[], any, any> {
+export function useProjects(
+  { workspaceId }: UseProjectsParam,
+  swrConfig: SWRConfiguration = {}
+): SWRResponse<Project[], any, any> {
   const instantlyClient = useInstantlyClient();
   return useSWR<
     Project[],
@@ -21,6 +22,7 @@ export function useProjects({
       key: `/workspaces/${workspaceId}/projects`,
       workspaceId,
     }),
-    instantlyClient.getProjectsForWorkspace
+    instantlyClient.getProjectsForWorkspace,
+    swrConfig
   );
 }

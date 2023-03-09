@@ -1,12 +1,13 @@
 import { ArrowBackIcon } from "@chakra-ui/icons";
 import { Button, Center, Heading } from "@chakra-ui/react";
-import React from "react";
+import React, { Suspense } from "react";
 import { Link as RRDLink } from "react-router-dom";
 import {
   createBrowserRouter,
   redirect,
   RouterProvider,
 } from "react-router-dom";
+import { CenteredSpinner } from "src/components/CenteredSpinner";
 import TaskIdPage from "./workspaces/[workspaceId]/projects/[projectId]/tasks/[taskId]/+page";
 
 const WorkspacesPage = React.lazy(() => import("./workspaces/+page"));
@@ -20,6 +21,9 @@ const WorkspaceIdLayout = React.lazy(
 const ProjectIdPage = React.lazy(
   () => import("./workspaces/[workspaceId]/projects/[projectId]/+page")
 );
+
+const projectsNavbarHeight = "80px";
+const centeredLayoutHeight = `calc(100dvh - ${projectsNavbarHeight})`;
 
 const router = createBrowserRouter([
   {
@@ -42,15 +46,33 @@ const router = createBrowserRouter([
     children: [
       {
         path: "",
-        element: <WorkspaceIdPage />,
+        element: (
+          <Suspense
+            fallback={<CenteredSpinner height={centeredLayoutHeight} />}
+          >
+            <WorkspaceIdPage />
+          </Suspense>
+        ),
       },
       {
         path: "projects/:projectId",
-        element: <ProjectIdPage />,
+        element: (
+          <Suspense
+            fallback={<CenteredSpinner height={centeredLayoutHeight} />}
+          >
+            <ProjectIdPage />
+          </Suspense>
+        ),
         children: [
           {
             path: "tasks/:taskId",
-            element: <TaskIdPage />,
+            element: (
+              <Suspense
+                fallback={<CenteredSpinner height={centeredLayoutHeight} />}
+              >
+                <TaskIdPage />
+              </Suspense>
+            ),
           },
         ],
       },

@@ -23,7 +23,6 @@ export const EditableValue: React.FC<IEditableValueProps> = ({
     <Flex
       className="group transition-all"
       rounded="lg"
-      p={2}
       _hover={{
         bgColor: textBgColor,
       }}
