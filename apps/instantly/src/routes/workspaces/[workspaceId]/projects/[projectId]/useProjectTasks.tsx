@@ -3,6 +3,15 @@ import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import produce from "immer";
 
+type UseTasksParam = {
+  workspaceId: Workspace["id"];
+  projectId: Project["id"];
+};
+
+type UseTasksKey = UseTasksParam & {
+  key: "tasks";
+};
+
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   toggleTaskArchived: (
     taskId: Task["id"],
@@ -15,22 +24,18 @@ type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   ) => Promise<void>;
 };
 
-export const useProjectTasks = ({
+export function useTasks({
   workspaceId,
   projectId,
-}: {
-  projectId: Project["id"];
-  workspaceId: Workspace["id"];
-}): UseProjectTasksReturnType => {
+}: UseTasksParam): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
-  const { data, mutate, ...rest } = useSWR<
-    Task[],
-    any,
-    () => ["workspaces", Workspace["id"], "projects", Project["id"], "tasks"]
-  >(
-    () => ["workspaces", workspaceId, "projects", projectId, "tasks"],
-    ([, workspaceId, , projectId]) =>
-      instantlyClient.getProjectTasks({ workspaceId, projectId })
+  const { data, mutate, ...rest } = useSWR<Task[], any, () => UseTasksKey>(
+    () => ({
+      key: `tasks`,
+      workspaceId,
+      projectId,
+    }),
+    instantlyClient.getTasksForProject
   );
 
   const updateTask: UseProjectTasksReturnType["updateTask"] = async (
@@ -79,4 +84,4 @@ export const useProjectTasks = ({
     };
 
   return { data, mutate, toggleTaskArchived, updateTask, ...rest };
-};
+}

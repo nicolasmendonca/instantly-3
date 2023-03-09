@@ -16,7 +16,7 @@ export const InstantlyClientProvider: React.FC<{
   );
 };
 
-export const useInstantlyClient = (): InstantlyClient => {
+export function useInstantlyClient(): InstantlyClient {
   const context = React.useContext(InstantlyClientContext);
   if (context === undefined) {
     throw new Error(
@@ -24,4 +24,4 @@ export const useInstantlyClient = (): InstantlyClient => {
     );
   }
   return context;
-};
+}

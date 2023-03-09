@@ -1,11 +1,13 @@
-import { Center, Heading } from "@chakra-ui/react";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+import { Button, Center, Heading } from "@chakra-ui/react";
 import React from "react";
+import { Link as RRDLink } from "react-router-dom";
 import {
   createBrowserRouter,
-  Outlet,
   redirect,
   RouterProvider,
 } from "react-router-dom";
+import TaskIdPage from "./workspaces/[workspaceId]/projects/[projectId]/tasks/[taskId]/+page";
 
 const WorkspacesPage = React.lazy(() => import("./workspaces/+page"));
 const NewWorkspacePage = React.lazy(() => import("./workspaces/new/+page"));
@@ -45,14 +47,25 @@ const router = createBrowserRouter([
       {
         path: "projects/:projectId",
         element: <ProjectIdPage />,
+        children: [
+          {
+            path: "tasks/:taskId",
+            element: <TaskIdPage />,
+          },
+        ],
       },
     ],
   },
   {
     path: "*",
     element: (
-      <Center height="100dvh">
+      <Center height="100dvh" display="flex" flexDir="column" gap={6}>
         <Heading>Not found 😓</Heading>
+        <div>
+          <Button as={RRDLink} to="/workspaces" leftIcon={<ArrowBackIcon />}>
+            Back to Safety
+          </Button>
+        </div>
       </Center>
     ),
   },

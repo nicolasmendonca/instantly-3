@@ -230,7 +230,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
    * Tasks
    */
 
-  public getProjectTasks: InstantlyClient["getProjectTasks"] = async ({
+  public getTasksForProject: InstantlyClient["getTasksForProject"] = async ({
     workspaceId,
     projectId,
   }) => {
@@ -252,6 +252,29 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       });
     });
     return tasks;
+  };
+
+  public getTaskForProject: InstantlyClient["getTaskForProject"] = ({
+    workspaceId,
+    projectId,
+    taskId,
+  }) => {
+    return getDoc(
+      doc(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "tasks",
+        taskId
+      )
+    ).then((doc) => {
+      return {
+        id: doc.id,
+        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
+      };
+    });
   };
 
   public updateTask: InstantlyClient["updateTask"] = async (

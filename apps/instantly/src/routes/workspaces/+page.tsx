@@ -8,7 +8,7 @@ import {
   Stack,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useWorkspaces } from "src/features/workspaces/useWorkspaces";
+import { useWorkspaces } from "./useWorkspaces";
 
 interface IWorkspacesPageProps {}
 

@@ -2,21 +2,28 @@ import useSWR, { SWRResponse } from "swr";
 import { Project, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
-export const useProject = ({
-  workspaceId,
-  projectId,
-}: {
+type UseProjectParams = {
   projectId: Project["id"];
   workspaceId: Workspace["id"];
-}): SWRResponse<Project, any, any> => {
+};
+
+export function useProject({
+  workspaceId,
+  projectId,
+}: UseProjectParams): SWRResponse<Project, any, any> {
   const instantlyClient = useInstantlyClient();
   return useSWR<
     Project,
     any,
-    () => ["workspaces", Workspace["id"], "projects", Project["id"]]
+    () => UseProjectParams & {
+      key: `/workspaces/${Workspace["id"]}/projects/${Project["id"]}`;
+    }
   >(
-    () => ["workspaces", workspaceId, "projects", projectId],
-    ([, workspaceId, , projectId]) =>
-      instantlyClient.getProjectForWorkspace({ workspaceId, projectId })
+    () => ({
+      projectId,
+      workspaceId,
+      key: `/workspaces/${workspaceId}/projects/${projectId}`,
+    }),
+    instantlyClient.getProjectForWorkspace
   );
-};
+}

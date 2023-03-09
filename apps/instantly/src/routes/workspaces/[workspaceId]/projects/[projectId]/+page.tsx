@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Link,
   Table,
   TableContainer,
   Tag,
@@ -11,11 +12,17 @@ import {
   Th,
   Thead,
   Tr,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import ConfettiExplosion from "react-confetti-explosion";
-import { useParams } from "react-router-dom";
+import {
+  Outlet,
+  Link as RRDLink,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { Task } from "instantly-client";
-import { useProjectTasks } from "src/features/tasks/useProjectTasks";
+import { useTasks } from "./useProjectTasks";
 
 interface IProjectIdPageProps {}
 
@@ -23,11 +30,14 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
+    taskId?: string;
   }>();
+  const navigate = useNavigate();
+  const dividerColor = useColorModeValue("gray.200", "gray.700");
   const workspaceId = params.workspaceId!;
   const projectId = params.projectId!;
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
-  const { data: tasks, toggleTaskArchived } = useProjectTasks({
+  const { data: tasks, toggleTaskArchived } = useTasks({
     workspaceId,
     projectId,
   });
@@ -39,26 +49,31 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   };
   return (
     <Box>
-      <Box
-        float={{ base: "none", lg: "right" }}
-        w={{ base: "full", lg: "60%" }}
-        bg="cyan.900"
-        py={8}
-        px={{ base: 2, lg: 4 }}
-        height={{ base: "none", lg: "calc(100dvh - 80px)" }}
-        maxHeight={{ base: "none", lg: "calc(100dvh - 80px)" }}
-        overflowY="auto"
-      >
-        This is the task content
-      </Box>
+      {params.taskId && (
+        <>
+          <Box
+            float={{ base: "none", lg: "right" }}
+            w={{ base: "full", lg: "60%" }}
+            py={8}
+            px={{ base: 2, lg: 4 }}
+            height={{ base: "none", lg: "calc(100dvh - 80px)" }}
+            maxHeight={{ base: "none", lg: "calc(100dvh - 80px)" }}
+            overflowY="auto"
+            borderLeftWidth="1px"
+            borderLeftColor={dividerColor}
+          >
+            <Outlet />
+          </Box>
+        </>
+      )}
       <Box
         float={{ base: "none", lg: "left" }}
-        w={{ base: "full", lg: "40%" }}
+        w={{ base: "full", lg: params.taskId ? "40%" : "full" }}
         maxH={{ base: "none", lg: "calc(100dvh - 80px)" }}
         overflowY="auto"
       >
         <TableContainer>
-          <Button size="sm" mb={4}>
+          <Button size="sm" mx={2} my={4}>
             Add New Task
           </Button>
           <Table>
@@ -71,7 +86,7 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
             </Thead>
             <Tbody>
               {tasks?.map((task) => (
-                <Tr key={task.id}>
+                <Tr key={task.id} transition="all .2s ease-in-out">
                   <Td textAlign="center" px={2}>
                     <Checkbox
                       isChecked={task.archived}
@@ -80,7 +95,16 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
                     {showConfettiForTaskId === task.id && <ConfettiExplosion />}
                   </Td>
                   <Td px={2} w="full">
-                    {task.title}
+                    <Link
+                      as={RRDLink}
+                      to={`/workspaces/${workspaceId}/projects/${projectId}/tasks/${task.id}`}
+                      _hover={{
+                        color: "cyan.700",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {task.title}
+                    </Link>
                   </Td>
                   <Td px={2}>
                     <Tag>{task.status}</Tag>

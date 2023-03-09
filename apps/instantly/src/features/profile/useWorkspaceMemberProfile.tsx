@@ -6,21 +6,34 @@ import {
 } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
-export const useWorkspaceMemberProfile = ({
-  workspaceId,
-  memberId,
-}: {
+type UseWorkspaceMemberProfileParam = {
   workspaceId: Workspace["id"];
   memberId: User["id"];
-}): SWRResponse<WorkspaceMemberProfile, any, any> => {
+};
+
+type UseWorkspaceMemberProfileKey = UseWorkspaceMemberProfileParam & {
+  key: "workspace-member";
+};
+
+export function useWorkspaceMemberProfile({
+  workspaceId,
+  memberId,
+}: UseWorkspaceMemberProfileParam): SWRResponse<
+  WorkspaceMemberProfile,
+  any,
+  UseWorkspaceMemberProfileKey
+> {
   const instantlyClient = useInstantlyClient();
   return useSWR<
     WorkspaceMemberProfile,
     any,
-    () => ["workspaces", Workspace["id"], "member", User["id"]]
+    () => UseWorkspaceMemberProfileKey
   >(
-    () => ["workspaces", workspaceId, "member", memberId],
-    ([, workspaceId, , memberId]) =>
-      instantlyClient.getWorkspaceMemberProfile({ workspaceId, memberId })
+    () => ({
+      key: "workspace-member",
+      workspaceId,
+      memberId,
+    }),
+    instantlyClient.getWorkspaceMemberProfile
   );
-};
+}

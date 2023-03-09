@@ -1,15 +1,24 @@
-import useSWR from "swr";
+import useSWR, { SWRResponse } from "swr";
 import { Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
-export const useWorkspace = ({
-  workspaceId,
-}: {
+type UseWorkspaceParam = {
   workspaceId: Workspace["id"];
-}) => {
-  const instantlyClient = useInstantlyClient();
-  return useSWR<Workspace, any, () => [string, Workspace["id"]]>(
-    () => ["workspaces", workspaceId],
-    ([, workspaceId]) => instantlyClient.getWorkspace({ workspaceId })
-  );
 };
+
+type UseWorkspaceKey = UseWorkspaceParam & {
+  key: "workspaces";
+};
+
+export function useWorkspace({
+  workspaceId,
+}: UseWorkspaceParam): SWRResponse<Workspace, any, UseWorkspaceKey> {
+  const instantlyClient = useInstantlyClient();
+  return useSWR<Workspace, any, () => UseWorkspaceKey>(
+    () => ({
+      key: "workspaces",
+      workspaceId,
+    }),
+    instantlyClient.getWorkspace
+  );
+}

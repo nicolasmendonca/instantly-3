@@ -54,10 +54,10 @@ export const AuthProvider: React.FC<{
   );
 };
 
-export const useAuth = (): UseInstantlyAuthReturnType => {
+export function useAuth(): UseInstantlyAuthReturnType {
   const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within a AuthProvider");
   }
   return context;
-};
+}

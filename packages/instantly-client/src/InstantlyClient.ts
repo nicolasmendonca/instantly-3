@@ -18,60 +18,43 @@ export interface InstantlyClient {
   logout: () => Promise<void>;
 
   // Workspaces
-  getWorkspacesForUser: ({
-    userId,
-  }: {
+  getWorkspacesForUser: (params: {
     userId: User["id"];
   }) => Promise<Workspace[]>;
-  getWorkspace: ({
-    workspaceId,
-  }: {
+  getWorkspace: (params: {
     workspaceId: Workspace["id"];
   }) => Promise<Workspace>;
   createNewWorkspace: (name: string) => Promise<Workspace["id"]>;
-  getWorkspaceMemberProfile: ({
-    workspaceId,
-    memberId,
-  }: {
+  getWorkspaceMemberProfile: (params: {
     workspaceId: Workspace["id"];
     memberId: User["id"];
   }) => Promise<WorkspaceMemberProfile>;
 
   // Projects
-  getProjectsForWorkspace: ({
-    workspaceId,
-  }: {
+  getProjectsForWorkspace: (params: {
     workspaceId: Workspace["id"];
   }) => Promise<Project[]>;
-  getProjectForWorkspace: ({
-    workspaceId,
-    projectId,
-  }: {
+  getProjectForWorkspace: (params: {
     workspaceId: Workspace["id"];
     projectId: Project["id"];
   }) => Promise<Project>;
-  createProject: ({
-    workspaceId,
-    name,
-  }: {
+  createProject: (params: {
     workspaceId: Workspace["id"];
     name: string;
   }) => Promise<Project["id"]>;
 
   // Tasks
-  getProjectTasks: ({
-    workspaceId,
-    projectId,
-  }: {
+  getTasksForProject: (params: {
     workspaceId: Workspace["id"];
     projectId: Project["id"];
   }) => Promise<Task[]>;
+  getTaskForProject: (params: {
+    workspaceId: Workspace["id"];
+    projectId: Project["id"];
+    taskId: Task["id"];
+  }) => Promise<Task>;
   updateTask: (
-    {
-      workspaceId,
-      projectId,
-      taskId,
-    }: {
+    params: {
       taskId: Task["id"];
       workspaceId: Workspace["id"];
       projectId: Project["id"];
