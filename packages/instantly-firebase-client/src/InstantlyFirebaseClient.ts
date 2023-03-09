@@ -291,6 +291,29 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     });
   };
 
+  public createTask: InstantlyClient["createTask"] = async (
+    { projectId, workspaceId },
+    taskPayload
+  ) => {
+    const taskCollection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectId,
+      "tasks"
+    );
+    const taskDocRef = await addDoc(
+      taskCollection,
+      taskPayload satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+    );
+    const loadedTask = await getDoc(taskDocRef);
+    return {
+      ...(loadedTask.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
+      id: loadedTask.id,
+    };
+  };
+
   public updateTask: InstantlyClient["updateTask"] = async (
     { workspaceId, projectId, taskId },
     task

@@ -51,6 +51,14 @@ export interface InstantlyClient {
     projectId: Project["id"];
     taskId: Task["id"];
   }) => Promise<Task>;
+  createTask: (
+    params: {
+      workspaceId: Workspace["id"];
+      projectId: Project["id"];
+      userId: User["id"];
+    },
+    taskPayload: Omit<Task, "id">
+  ) => Promise<Task>;
   updateTask: (
     params: {
       taskId: Task["id"];

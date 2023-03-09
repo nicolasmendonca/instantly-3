@@ -72,7 +72,11 @@ const TasksListPane: React.FC<
     projectId: Project["id"];
   }
 > = ({ workspaceId, projectId, ...props }) => {
-  const { data: tasks, toggleTaskArchived } = useTasks({
+  const {
+    data: tasks,
+    toggleTaskArchived,
+    createTask,
+  } = useTasks({
     workspaceId,
     projectId,
   });
@@ -83,10 +87,15 @@ const TasksListPane: React.FC<
     setShowConfettiForTaskId(task.archived ? "" : task.id);
     toggleTaskArchived(task.id, { revalidate: false });
   };
+
+  const handleAddNewTask = async () => {
+    await createTask();
+  };
+
   return (
     <Box {...props}>
       <TableContainer>
-        <Button size="sm" mx={2} my={4}>
+        <Button size="sm" mx={2} my={4} onClick={handleAddNewTask}>
           Add New Task
         </Button>
         <Table>

@@ -2,6 +2,7 @@ import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
 import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import produce from "immer";
+import { useAuth } from "src/features/auth/AuthProvider";
 
 type UseTasksParam = {
   workspaceId: Workspace["id"];
@@ -13,6 +14,7 @@ type UseTasksKey = UseTasksParam & {
 };
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
+  createTask: (taskPayload?: Partial<Omit<Task, "id">>) => Promise<Task>;
   toggleTaskArchived: (
     taskId: Task["id"],
     mutatorOptions?: MutatorOptions
@@ -38,6 +40,28 @@ export function useTasks(
     instantlyClient.getTasksForProject,
     swrConfig
   );
+
+  const createTask: UseProjectTasksReturnType["createTask"] = async (
+    taskPayload
+  ) => {
+    const task: Omit<Task, "id"> = {
+      archived: false,
+      title: "",
+      description: "",
+      status: "In Backlog",
+      ...taskPayload,
+    };
+
+    const newTask = await instantlyClient.createTask(
+      {
+        projectId,
+        userId: "1",
+        workspaceId,
+      },
+      task
+    );
+    return newTask;
+  };
 
   const updateTask: UseProjectTasksReturnType["updateTask"] = async (
     taskId,
@@ -84,5 +108,5 @@ export function useTasks(
       await updateTask(taskId, updatedTask, mutatorOptions);
     };
 
-  return { data, mutate, toggleTaskArchived, updateTask, ...rest };
+  return { data, mutate, toggleTaskArchived, updateTask, createTask, ...rest };
 }
