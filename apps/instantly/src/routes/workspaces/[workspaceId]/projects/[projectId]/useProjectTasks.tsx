@@ -55,11 +55,19 @@ export function useTasks(
     const newTask = await instantlyClient.createTask(
       {
         projectId,
-        userId: "1",
         workspaceId,
       },
       task
     );
+
+    const updatedTasks = produce(data, (tasks) => {
+      tasks?.push(newTask);
+    });
+
+    mutate(updatedTasks, {
+      revalidate: false,
+    });
+
     return newTask;
   };
 

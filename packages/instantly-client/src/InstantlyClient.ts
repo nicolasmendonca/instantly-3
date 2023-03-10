@@ -55,7 +55,6 @@ export interface InstantlyClient {
     params: {
       workspaceId: Workspace["id"];
       projectId: Project["id"];
-      userId: User["id"];
     },
     taskPayload: Omit<Task, "id">
   ) => Promise<Task>;

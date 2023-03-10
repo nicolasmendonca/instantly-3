@@ -10,13 +10,20 @@ import {
   Tag,
   Tbody,
   Td,
+  Text,
   Th,
   Thead,
   Tr,
+  useBoolean,
   useColorModeValue,
 } from "@chakra-ui/react";
 import ConfettiExplosion from "react-confetti-explosion";
-import { Outlet, Link as RRDLink, useParams } from "react-router-dom";
+import {
+  Outlet,
+  Link as RRDLink,
+  useParams,
+  useNavigate,
+} from "react-router-dom";
 import { Project, Task, Workspace } from "instantly-client";
 import { useTasks } from "./useProjectTasks";
 
@@ -72,6 +79,7 @@ const TasksListPane: React.FC<
     projectId: Project["id"];
   }
 > = ({ workspaceId, projectId, ...props }) => {
+  const [isCreatingTask, setIsCreatingTask] = useBoolean();
   const {
     data: tasks,
     toggleTaskArchived,
@@ -81,6 +89,8 @@ const TasksListPane: React.FC<
     projectId,
   });
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
+  const unnamedTaskColor = useColorModeValue("blackAlpha.600", "gray");
+  const navigate = useNavigate();
 
   const handleTaskArchivedChange = async (task: Task) => {
     if (!tasks) return;
@@ -89,13 +99,24 @@ const TasksListPane: React.FC<
   };
 
   const handleAddNewTask = async () => {
-    await createTask();
+    setIsCreatingTask.on();
+    const createdTask = await createTask();
+    navigate(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks/${createdTask.id}`
+    );
+    setIsCreatingTask.off();
   };
 
   return (
     <Box {...props}>
       <TableContainer>
-        <Button size="sm" mx={2} my={4} onClick={handleAddNewTask}>
+        <Button
+          size="sm"
+          mx={2}
+          my={4}
+          onClick={handleAddNewTask}
+          isLoading={isCreatingTask}
+        >
           Add New Task
         </Button>
         <Table>
@@ -125,7 +146,13 @@ const TasksListPane: React.FC<
                       textDecoration: "underline",
                     }}
                   >
-                    {task.title}
+                    {task.title ? (
+                      task.title
+                    ) : (
+                      <Text as="span" color={unnamedTaskColor}>
+                        Unnamed Task
+                      </Text>
+                    )}
                   </Link>
                 </Td>
                 <Td px={2}>

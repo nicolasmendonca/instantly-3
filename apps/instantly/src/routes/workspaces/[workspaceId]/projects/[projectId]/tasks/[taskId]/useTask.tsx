@@ -13,13 +13,17 @@ type UseTaskKey = UseTaskParam & {
   key: "task";
 };
 
+type UseTaskReturnType = SWRResponse<Task, any, any> & {
+  updateTask: (taskId: Task["id"], task: Task) => Promise<void>;
+};
+
 export function useTask(
   { workspaceId, projectId, taskId }: UseTaskParam,
   swrConfig: SWRConfiguration = {}
-): SWRResponse<Task, any, any> {
+): UseTaskReturnType {
   const { user } = useAuth();
   const instantlyClient = useInstantlyClient();
-  return useSWR<Task, any, () => UseTaskKey>(
+  const { data, mutate, ...swr } = useSWR<Task, any, () => UseTaskKey>(
     () => ({
       key: `task`,
       userId: user?.id,
@@ -30,4 +34,19 @@ export function useTask(
     instantlyClient.getTaskForProject,
     swrConfig
   );
+
+  const updateTask: UseTaskReturnType["updateTask"] = async (
+    taskId,
+    updatedTask
+  ) => {
+    await instantlyClient.updateTask(
+      { taskId, projectId, workspaceId },
+      updatedTask
+    );
+    await mutate(updatedTask, {
+      revalidate: false,
+    });
+  };
+
+  return { ...swr, data, mutate, updateTask };
 }

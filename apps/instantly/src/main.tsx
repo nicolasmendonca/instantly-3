@@ -14,10 +14,15 @@ import "./index.css";
 import { SWRConfig } from "swr";
 import { InstantlyClientProvider } from "./features/clients/useInstantlyClient";
 
+// @ts-ignore
+import { swrLoggerMiddleware } from "./swrLoggerMiddleware";
+
 const themeConfig: ThemeConfig = {
   initialColorMode: "dark",
 };
 const theme = extendTheme({ config: themeConfig });
+
+const limitRevalidations = true;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -25,6 +30,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <SWRConfig
         value={{
           suspense: true,
+          revalidateIfStale: !limitRevalidations,
+          revalidateOnFocus: !limitRevalidations,
+          revalidateOnReconnect: !limitRevalidations,
+          revalidateOnMount: !limitRevalidations,
+          use: [swrLoggerMiddleware],
         }}
       >
         <Suspense

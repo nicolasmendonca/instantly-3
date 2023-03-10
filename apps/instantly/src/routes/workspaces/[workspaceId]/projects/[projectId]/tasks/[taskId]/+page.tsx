@@ -11,6 +11,8 @@ import { useTask } from "./useTask";
 import { useParams } from "react-router-dom";
 import { APP_SETTINGS } from "src/features/appSettings";
 import { EditableButton, EditableValue } from "src/components/EditableValue";
+import produce from "immer";
+import { useTasks } from "../../useProjectTasks";
 
 interface ITaskIdPageProps {}
 
@@ -20,32 +22,68 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     workspaceId: string;
     taskId: string;
   }>();
-  const { data } = useTask({
-    workspaceId: params.workspaceId!,
-    projectId: params.projectId!,
-    taskId: params.taskId!,
+
+  const workspaceId = params.workspaceId!;
+  const projectId = params.projectId!;
+  const taskId = params.taskId!;
+
+  const { mutate: mutateTasks } = useTasks({
+    projectId,
+    workspaceId,
+  });
+  const { data: task, updateTask } = useTask({
+    workspaceId,
+    projectId,
+    taskId,
   });
   const dividerColor = useColorModeValue("gray.200", "gray.600");
 
   React.useEffect(() => {
-    if (data?.title) {
-      document.title = data.title;
+    if (task?.title) {
+      document.title = task.title;
     }
-  }, [data?.title]);
+  }, [task?.title]);
+
+  if (!task) return null;
 
   return (
     <Stack gap={2}>
       <EditableValue
-        defaultValue={data?.title}
+        placeholder="Unnamed Task"
+        key={`editable-title-${taskId}`}
+        defaultValue={task.title}
+        onSubmit={async (newTitle) => {
+          await updateTask(
+            taskId,
+            produce(task, (draft) => {
+              draft.title = newTitle;
+            })
+          );
+          await mutateTasks();
+        }}
         fontSize="2xl"
         fontWeight="extrabold"
+        color={task.title === "" ? "gray" : "initial"}
       >
         <EditablePreview px={2} wordBreak="break-word" />
         <EditableInput px={2} maxLength={APP_SETTINGS.TASK_TITLE_MAX_LENGTH} />
         <EditableButton />
       </EditableValue>
       <Divider borderColor={dividerColor} />
-      <EditableValue defaultValue={data?.description}>
+      <EditableValue
+        placeholder="No Description"
+        key={`editable-description-${taskId}`}
+        defaultValue={task.description}
+        color={task.title === "" ? "gray" : "initial"}
+        onSubmit={async (newDescription) => {
+          await updateTask(
+            taskId,
+            produce(task, (draft) => {
+              draft.description = newDescription;
+            })
+          );
+        }}
+      >
         <EditablePreview
           px={2}
           whiteSpace="break-spaces"
