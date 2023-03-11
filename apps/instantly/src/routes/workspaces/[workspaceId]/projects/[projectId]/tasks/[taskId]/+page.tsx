@@ -49,7 +49,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
   return (
     <Stack gap={2}>
       <EditableValue
-        placeholder="Unnamed Task"
+        placeholder="Task Title"
         key={`editable-title-${taskId}`}
         defaultValue={task.title}
         onSubmit={async (newTitle) => {
@@ -63,18 +63,20 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
         }}
         fontSize="2xl"
         fontWeight="extrabold"
-        color={task.title === "" ? "gray" : "initial"}
       >
-        <EditablePreview px={2} wordBreak="break-word" />
+        <EditablePreview
+          px={2}
+          wordBreak="break-word"
+          color={task.title === "" ? "gray" : "initial"}
+        />
         <EditableInput px={2} maxLength={APP_SETTINGS.TASK_TITLE_MAX_LENGTH} />
         <EditableButton />
       </EditableValue>
       <Divider borderColor={dividerColor} />
       <EditableValue
-        placeholder="No Description"
+        placeholder="Task Description"
         key={`editable-description-${taskId}`}
         defaultValue={task.description}
-        color={task.title === "" ? "gray" : "initial"}
         onSubmit={async (newDescription) => {
           await updateTask(
             taskId,
@@ -88,6 +90,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
           px={2}
           whiteSpace="break-spaces"
           wordBreak="break-word"
+          color={task.description === "" ? "gray" : "initial"}
         />
         <EditableTextarea px={2} rows={12} />
         <EditableButton />

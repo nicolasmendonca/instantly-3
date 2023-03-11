@@ -2,6 +2,7 @@ import type {
   InstantlyClient,
   Project,
   Task,
+  TaskStatus,
   User,
   Workspace,
   WorkspaceMemberProfile,
@@ -18,6 +19,7 @@ import {
   getDoc,
   doc,
   enableIndexedDbPersistence,
+  updateDoc,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getPerformance } from "firebase/performance";
@@ -233,10 +235,40 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       workspaceId,
       "projects"
     );
+
+    // Create the project document
     const projectDoc = await addDoc(projectCollection, {
       name,
       emoji: "📝",
+      defaultTaskStatusId: "",
     } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]);
+
+    // Create the default task statuses
+    const taskStatusesCollection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectDoc.id,
+      "task-statuses"
+    );
+
+    const [todoTask] = await Promise.all([
+      addDoc(taskStatusesCollection, {
+        label: "To Do",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      addDoc(taskStatusesCollection, {
+        label: "In Progress",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      addDoc(taskStatusesCollection, {
+        label: "Done",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+    ]);
+
+    // Asign the first "To Do" task status as the default task status for the project
+    await updateDoc(projectDoc, "defaultTaskStatusId", todoTask.id);
+
+    // Return the project id
     return projectDoc.id;
   };
 
@@ -332,6 +364,28 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       taskWithoutId satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
     );
   };
+
+  public getTaskStatuses: InstantlyClient["getTaskStatuses"] = async ({
+    workspaceId,
+    projectId,
+  }) => {
+    const statusesCollection = await getDocs(
+      collection(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "task-statuses"
+      )
+    );
+    return statusesCollection.docs.map((doc) => {
+      return {
+        id: doc.id,
+        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      };
+    });
+  };
 }
 
 type TypesPerFirestorePath = {
@@ -345,6 +399,10 @@ type TypesPerFirestorePath = {
   "/workspaces/:workspaceId/projects/:projectId": Omit<Project, "id">;
   "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId": Omit<
     Task,
+    "id"
+  >;
+  "/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId": Omit<
+    TaskStatus,
     "id"
   >;
 };

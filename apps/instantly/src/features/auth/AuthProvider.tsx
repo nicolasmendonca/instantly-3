@@ -1,23 +1,18 @@
 import React from "react";
-import useSWR, { SWRResponse } from "swr";
+import useSWR from "swr";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import type { User } from "src/features/clients/instantlyClient";
 
-function useAuthUser(): SWRResponse<User | null, any, { key: "auth-user" }> {
+const useInstantlyClientAuth = () => {
   const instantlyClient = useInstantlyClient();
-  return useSWR<User | null, any, any>(
+  const { data, mutate, isLoading } = useSWR<User | null, any, any>(
     { key: "auth-user" },
     instantlyClient.getAuthUser
   );
-}
-
-const useInstantlyClientAuth = () => {
-  const { data: user, mutate: mutateAuthUser, isLoading } = useAuthUser();
-  const instantlyClient = useInstantlyClient();
 
   React.useEffect(() => {
     const unsubscribe = instantlyClient.subscribeToAuthState(() =>
-      mutateAuthUser(user)
+      mutate(undefined, { revalidate: true })
     );
     return () => {
       unsubscribe();
@@ -33,7 +28,7 @@ const useInstantlyClientAuth = () => {
   };
 
   return {
-    user,
+    user: data,
     login,
     logout,
     isLoading,
@@ -52,12 +47,7 @@ export const AuthProvider: React.FC<{
   const result = useInstantlyClientAuth();
 
   const memoized = React.useMemo(() => {
-    return {
-      user: result.user,
-      login: result.login,
-      logout: result.logout,
-      isLoading: result.isLoading,
-    };
+    return result;
   }, [result.user, result.isLoading]);
 
   return (

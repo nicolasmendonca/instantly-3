@@ -7,7 +7,6 @@ import {
   Link,
   Table,
   TableContainer,
-  Tag,
   Tbody,
   Td,
   Text,
@@ -24,8 +23,11 @@ import {
   useParams,
   useNavigate,
 } from "react-router-dom";
-import { Project, Task, Workspace } from "instantly-client";
+import { Project, Task, TaskStatus, Workspace } from "instantly-client";
 import { useTasks } from "./useProjectTasks";
+import { TaskStatusDropdown } from "./TaskStatusDropdown";
+import produce from "immer";
+import { useTaskStatuses } from "./useTaskStatuses";
 
 interface IProjectIdPageProps {}
 
@@ -84,13 +86,20 @@ const TasksListPane: React.FC<
     data: tasks,
     toggleTaskArchived,
     createTask,
+    updateTask,
   } = useTasks({
     workspaceId,
     projectId,
   });
+  const { data: taskStatuses } = useTaskStatuses({
+    workspaceId,
+    projectId,
+  });
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
-  const unnamedTaskColor = useColorModeValue("blackAlpha.600", "gray");
+  const untitledTaskColor = useColorModeValue("blackAlpha.600", "gray");
   const navigate = useNavigate();
+  const params = useParams<{ taskId?: string }>();
+  const activeTaskId = params.taskId ?? "";
 
   const handleTaskArchivedChange = async (task: Task) => {
     if (!tasks) return;
@@ -106,6 +115,18 @@ const TasksListPane: React.FC<
     );
     setIsCreatingTask.off();
   };
+
+  const handleChangeTaskStatus = async (task: Task, status: TaskStatus) => {
+    if (!tasks) return;
+    updateTask(
+      task.id,
+      produce(task, (draft) => {
+        draft.status = status.id;
+      })
+    );
+  };
+
+  if (!tasks || !taskStatuses) return null;
 
   return (
     <Box {...props}>
@@ -128,38 +149,62 @@ const TasksListPane: React.FC<
             </Tr>
           </Thead>
           <Tbody>
-            {tasks?.map((task) => (
-              <Tr key={task.id} transition="all .2s ease-in-out">
-                <Td textAlign="center" px={2}>
-                  <Checkbox
-                    isChecked={task.archived}
-                    onChange={() => handleTaskArchivedChange(task)}
-                  />
-                  {showConfettiForTaskId === task.id && <ConfettiExplosion />}
-                </Td>
-                <Td px={2} w="full">
-                  <Link
-                    as={RRDLink}
-                    to={`/workspaces/${workspaceId}/projects/${projectId}/tasks/${task.id}`}
-                    _hover={{
-                      color: "cyan.700",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    {task.title ? (
-                      task.title
-                    ) : (
-                      <Text as="span" color={unnamedTaskColor}>
-                        Unnamed Task
-                      </Text>
-                    )}
-                  </Link>
-                </Td>
-                <Td px={2}>
-                  <Tag>{task.status}</Tag>
-                </Td>
-              </Tr>
-            ))}
+            {tasks?.map((task) => {
+              const taskStatus = taskStatuses.find(
+                (taskStatus) => taskStatus.id === task.status
+              );
+
+              if (!taskStatus) throw new Error("Task status not found");
+              return (
+                <Tr
+                  key={task.id}
+                  transition="all .2s ease-in-out"
+                  bgColor={activeTaskId === task.id ? "cyan.800" : "initial"}
+                >
+                  <Td textAlign="center" px={2}>
+                    <Checkbox
+                      isChecked={task.archived}
+                      onChange={() => handleTaskArchivedChange(task)}
+                    />
+                    {showConfettiForTaskId === task.id && <ConfettiExplosion />}
+                  </Td>
+                  <Td px={2} w="full">
+                    <Link
+                      as={RRDLink}
+                      to={`/workspaces/${workspaceId}/projects/${projectId}/tasks/${task.id}`}
+                      _hover={{
+                        color: activeTaskId ? "initial" : "cyan.700",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {task.title ? (
+                        task.title
+                      ) : (
+                        <Text
+                          as="span"
+                          color={
+                            activeTaskId === task.id
+                              ? "white"
+                              : untitledTaskColor
+                          }
+                        >
+                          Untitled task
+                        </Text>
+                      )}
+                    </Link>
+                  </Td>
+                  <Td px={2}>
+                    <TaskStatusDropdown
+                      status={taskStatus}
+                      statusOptions={taskStatuses}
+                      onChange={(newStatus) =>
+                        handleChangeTaskStatus(task, newStatus)
+                      }
+                    />
+                  </Td>
+                </Tr>
+              );
+            })}
           </Tbody>
         </Table>
       </TableContainer>

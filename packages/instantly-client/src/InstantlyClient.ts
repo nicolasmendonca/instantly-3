@@ -4,6 +4,7 @@ import type {
   Task,
   WorkspaceMemberProfile,
   Project,
+  TaskStatus,
 } from "./entities";
 
 type UnsubscribeFn = () => void;
@@ -66,4 +67,10 @@ export interface InstantlyClient {
     },
     task: Task
   ) => Promise<void>;
+
+  // Task Statuses
+  getTaskStatuses: (params: {
+    workspaceId: Workspace["id"];
+    projectId: Project["id"];
+  }) => Promise<TaskStatus[]>;
 }

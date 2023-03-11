@@ -1,8 +1,8 @@
+import produce from "immer";
 import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
 import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
-import produce from "immer";
-import { useAuth } from "src/features/auth/AuthProvider";
+import { useProject } from "src/features/projects/useProject";
 
 type UseTasksParam = {
   workspaceId: Workspace["id"];
@@ -31,6 +31,10 @@ export function useTasks(
   swrConfig: SWRConfiguration = {}
 ): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
+  const { data: project } = useProject({
+    workspaceId,
+    projectId,
+  });
   const { data, mutate, ...rest } = useSWR<Task[], any, () => UseTasksKey>(
     () => ({
       key: `tasks`,
@@ -44,11 +48,13 @@ export function useTasks(
   const createTask: UseProjectTasksReturnType["createTask"] = async (
     taskPayload
   ) => {
+    if (!project)
+      throw new Error("No project found on useProjectTasks@createTask");
     const task: Omit<Task, "id"> = {
       archived: false,
       title: "",
       description: "",
-      status: "In Backlog",
+      status: project.defaultTaskStatusId,
       ...taskPayload,
     };
 
