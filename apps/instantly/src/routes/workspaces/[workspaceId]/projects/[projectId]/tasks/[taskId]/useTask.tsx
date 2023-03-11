@@ -15,6 +15,7 @@ type UseTaskKey = UseTaskParam & {
 
 type UseTaskReturnType = SWRResponse<Task, any, any> & {
   updateTask: (taskId: Task["id"], task: Task) => Promise<void>;
+  deleteTask: (taskId: Task["id"]) => Promise<void>;
 };
 
 export function useTask(
@@ -39,14 +40,33 @@ export function useTask(
     taskId,
     updatedTask
   ) => {
-    await instantlyClient.updateTask(
-      { taskId, projectId, workspaceId },
-      updatedTask
+    await mutate(
+      async () => {
+        await instantlyClient.updateTask(
+          { taskId, projectId, workspaceId },
+          updatedTask
+        );
+        return updatedTask;
+      },
+      {
+        revalidate: false,
+        optimisticData: updatedTask,
+      }
     );
-    await mutate(updatedTask, {
-      revalidate: false,
-    });
   };
 
-  return { ...swr, data, mutate, updateTask };
+  const deleteTask: UseTaskReturnType["deleteTask"] = async (taskId) => {
+    await mutate(
+      async () => {
+        await instantlyClient.deleteTask({ taskId, projectId, workspaceId });
+        return undefined;
+      },
+      {
+        optimisticData: undefined,
+        revalidate: false,
+      }
+    );
+  };
+
+  return { ...swr, data, mutate, updateTask, deleteTask };
 }

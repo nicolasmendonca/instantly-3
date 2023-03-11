@@ -46,6 +46,10 @@ export interface InstantlyClient {
   getTasksForProject: (params: {
     workspaceId: Workspace["id"];
     projectId: Project["id"];
+    filters: {
+      archived?: boolean;
+      status?: TaskStatus["id"];
+    };
   }) => Promise<Task[]>;
   getTaskForProject: (params: {
     workspaceId: Workspace["id"];
@@ -67,6 +71,11 @@ export interface InstantlyClient {
     },
     task: Task
   ) => Promise<void>;
+  deleteTask: (params: {
+    taskId: Task["id"];
+    workspaceId: Workspace["id"];
+    projectId: Project["id"];
+  }) => Promise<void>;
 
   // Task Statuses
   getTaskStatuses: (params: {

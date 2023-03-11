@@ -24,7 +24,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Project, Task, TaskStatus, Workspace } from "instantly-client";
-import { useTasks } from "./useProjectTasks";
+import { useTasks } from "./useTasks";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import produce from "immer";
 import { useTaskStatuses } from "./useTaskStatuses";
@@ -90,6 +90,9 @@ const TasksListPane: React.FC<
   } = useTasks({
     workspaceId,
     projectId,
+    filters: {
+      archived: false,
+    },
   });
   const { data: taskStatuses } = useTaskStatuses({
     workspaceId,
@@ -97,6 +100,8 @@ const TasksListPane: React.FC<
   });
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
   const untitledTaskColor = useColorModeValue("blackAlpha.600", "gray");
+  const titledTaskColor = useColorModeValue("black", "white");
+  const activeTaskTrBgColor = useColorModeValue("cyan.300", "cyan.800");
   const navigate = useNavigate();
   const params = useParams<{ taskId?: string }>();
   const activeTaskId = params.taskId ?? "";
@@ -159,7 +164,9 @@ const TasksListPane: React.FC<
                 <Tr
                   key={task.id}
                   transition="all .2s ease-in-out"
-                  bgColor={activeTaskId === task.id ? "cyan.800" : "initial"}
+                  bgColor={
+                    activeTaskId === task.id ? activeTaskTrBgColor : "initial"
+                  }
                 >
                   <Td textAlign="center" px={2}>
                     <Checkbox
@@ -172,6 +179,7 @@ const TasksListPane: React.FC<
                     <Link
                       as={RRDLink}
                       to={`/workspaces/${workspaceId}/projects/${projectId}/tasks/${task.id}`}
+                      color={titledTaskColor}
                       _hover={{
                         color: activeTaskId ? "initial" : "cyan.700",
                         textDecoration: "underline",
@@ -200,6 +208,8 @@ const TasksListPane: React.FC<
                       onChange={(newStatus) =>
                         handleChangeTaskStatus(task, newStatus)
                       }
+                      menuProps={{ size: "sm" }}
+                      buttonProps={{ size: "xs" }}
                     />
                   </Td>
                 </Tr>

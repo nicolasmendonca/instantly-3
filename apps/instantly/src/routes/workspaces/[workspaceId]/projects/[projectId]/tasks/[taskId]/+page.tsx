@@ -6,13 +6,24 @@ import {
   EditablePreview,
   EditableTextarea,
   EditableInput,
+  Flex,
+  Text,
+  Menu,
+  MenuButton,
+  IconButton,
+  MenuList,
+  MenuItem,
 } from "@chakra-ui/react";
 import { useTask } from "./useTask";
 import { useParams } from "react-router-dom";
 import { APP_SETTINGS } from "src/features/appSettings";
 import { EditableButton, EditableValue } from "src/components/EditableValue";
 import produce from "immer";
-import { useTasks } from "../../useProjectTasks";
+import { useTasks } from "../../useTasks";
+import { TaskStatusDropdown } from "../../TaskStatusDropdown";
+import { useTaskStatuses } from "../../useTaskStatuses";
+import { HamburgerIcon } from "@chakra-ui/icons";
+import { TaskStatus } from "instantly-client";
 
 interface ITaskIdPageProps {}
 
@@ -27,14 +38,25 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
   const projectId = params.projectId!;
   const taskId = params.taskId!;
 
-  const { mutate: mutateTasks } = useTasks({
+  const { data: tasks, mutate: mutateTasks } = useTasks({
     projectId,
     workspaceId,
+    filters: {
+      archived: false,
+    },
   });
-  const { data: task, updateTask } = useTask({
+  const {
+    data: task,
+    updateTask,
+    deleteTask,
+  } = useTask({
     workspaceId,
     projectId,
     taskId,
+  });
+  const { data: taskStatuses } = useTaskStatuses({
+    projectId,
+    workspaceId,
   });
   const dividerColor = useColorModeValue("gray.200", "gray.600");
 
@@ -44,7 +66,49 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     }
   }, [task?.title]);
 
-  if (!task) return null;
+  if (!task || !taskStatuses) return null;
+  const currentTaskStatus = taskStatuses.find(
+    (status) => status.id === task.status
+  );
+  if (!currentTaskStatus) throw new Error("Task status not found");
+
+  async function handleArchiveTask() {
+    if (!task) throw new Error("Task not found");
+    if (!tasks) throw new Error("Tasks not found");
+    await updateTask(
+      taskId,
+      produce(task, (draft) => {
+        draft.archived = true;
+      })
+    );
+    mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
+  }
+  function handleDeleteTask() {
+    if (!task) throw new Error("Task not found");
+    if (!tasks) throw new Error("Tasks not found");
+    deleteTask(taskId);
+    mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
+  }
+
+  function handleChangeTaskStatus(status: TaskStatus) {
+    if (!task) throw new Error("Task not found");
+    updateTask(
+      taskId,
+      produce(task, (draft) => {
+        draft.status = status.id;
+      })
+    );
+
+    if (!tasks) return;
+
+    const updatedTasks = produce(tasks, (draft) => {
+      const taskIndex = draft.findIndex((_task) => _task.id === taskId);
+      if (taskIndex === -1)
+        throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
+      draft[taskIndex].status = status.id;
+    });
+    mutateTasks(updatedTasks);
+  }
 
   return (
     <Stack gap={2}>
@@ -73,6 +137,26 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
         <EditableButton />
       </EditableValue>
       <Divider borderColor={dividerColor} />
+      <Flex align="center" justify="space-between">
+        <Flex align="center" gap={8}>
+          <Text fontWeight="bold">Status</Text>
+          <TaskStatusDropdown
+            status={currentTaskStatus}
+            statusOptions={taskStatuses}
+            onChange={handleChangeTaskStatus}
+          />
+        </Flex>
+
+        <Menu>
+          <MenuButton as={IconButton} aria-label="Options">
+            <HamburgerIcon />
+          </MenuButton>
+          <MenuList>
+            <MenuItem onClick={handleArchiveTask}>Archive task</MenuItem>
+            <MenuItem onClick={handleDeleteTask}>Delete task</MenuItem>
+          </MenuList>
+        </Menu>
+      </Flex>
       <EditableValue
         placeholder="Task Description"
         key={`editable-description-${taskId}`}

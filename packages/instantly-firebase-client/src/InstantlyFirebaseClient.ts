@@ -20,6 +20,10 @@ import {
   doc,
   enableIndexedDbPersistence,
   updateDoc,
+  query,
+  where,
+  QueryConstraint,
+  deleteDoc,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getPerformance } from "firebase/performance";
@@ -279,19 +283,32 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   public getTasksForProject: InstantlyClient["getTasksForProject"] = async ({
     workspaceId,
     projectId,
+    filters,
   }) => {
     let tasks: Task[] = [];
-    const _collection = await getDocs(
-      collection(
-        this.firestore,
-        "workspaces",
-        workspaceId,
-        "projects",
-        projectId,
-        "tasks"
-      )
+
+    const _collection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectId,
+      "tasks"
     );
-    _collection.forEach((doc) => {
+
+    let _queryFilters: QueryConstraint[] = [];
+
+    if (filters.archived !== undefined) {
+      _queryFilters.push(where("archived", "==", filters.archived));
+    }
+
+    if (filters.status !== undefined) {
+      _queryFilters.push(where("status", "==", filters.status));
+    }
+
+    const _documents = await getDocs(query(_collection, ..._queryFilters));
+
+    _documents.forEach((doc) => {
       tasks.push({
         id: doc.id,
         ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
@@ -362,6 +379,24 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         taskId
       ),
       taskWithoutId satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+    );
+  };
+
+  public deleteTask: InstantlyClient["deleteTask"] = ({
+    workspaceId,
+    projectId,
+    taskId,
+  }) => {
+    return deleteDoc(
+      doc(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "tasks",
+        taskId
+      )
     );
   };
 

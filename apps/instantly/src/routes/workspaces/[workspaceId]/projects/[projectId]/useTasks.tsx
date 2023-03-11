@@ -1,12 +1,28 @@
 import produce from "immer";
 import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
-import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
+import {
+  Project,
+  Task,
+  TaskStatus,
+  Workspace,
+} from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import { useProject } from "src/features/projects/useProject";
 
 type UseTasksParam = {
   workspaceId: Workspace["id"];
   projectId: Project["id"];
+  filters: Partial<UseTasksFilters>;
+};
+
+type UseTasksFilters = {
+  archived?: boolean;
+  status?: TaskStatus["id"];
+};
+
+const useTasksDefaultFilters: UseTasksFilters = {
+  archived: false,
+  status: undefined,
 };
 
 type UseTasksKey = UseTasksParam & {
@@ -27,7 +43,7 @@ type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
 };
 
 export function useTasks(
-  { workspaceId, projectId }: UseTasksParam,
+  { workspaceId, projectId, filters = {} }: UseTasksParam,
   swrConfig: SWRConfiguration = {}
 ): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
@@ -40,6 +56,7 @@ export function useTasks(
       key: `tasks`,
       workspaceId,
       projectId,
+      filters: { ...useTasksDefaultFilters, ...filters },
     }),
     instantlyClient.getTasksForProject,
     swrConfig
