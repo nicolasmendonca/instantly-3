@@ -17,17 +17,13 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import ConfettiExplosion from "react-confetti-explosion";
-import {
-  Outlet,
-  Link as RRDLink,
-  useParams,
-  useNavigate,
-} from "react-router-dom";
+import { Link as RRDLink, useParams, useSearchParams } from "react-router-dom";
 import { Project, Task, TaskStatus, Workspace } from "instantly-client";
 import { useTasks } from "./useTasks";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import produce from "immer";
 import { useTaskStatuses } from "./useTaskStatuses";
+import TaskIdPage from "./tasks/[taskId]/+page";
 
 interface IProjectIdPageProps {}
 
@@ -35,13 +31,14 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
-    taskId?: string;
   }>();
+  const [searchParams] = useSearchParams();
+  const selectedTaskId = searchParams.get("taskId");
   const dividerColor = useColorModeValue("gray.200", "gray.700");
 
   return (
     <>
-      {params.taskId && (
+      {selectedTaskId && (
         <>
           <Box
             float={{ base: "none", lg: "right" }}
@@ -54,19 +51,19 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
             borderLeftWidth="1px"
             borderLeftColor={dividerColor}
           >
-            <Outlet />
+            <TaskIdPage />
           </Box>
         </>
       )}
       <Box
-        maxW={params.taskId ? "none" : "container.md"}
-        mx={params.taskId ? "0" : "auto"}
+        maxW={selectedTaskId ? "none" : "container.md"}
+        mx={selectedTaskId ? "0" : "auto"}
       >
         <TasksListPane
           workspaceId={params.workspaceId!}
           projectId={params.projectId!}
           float={{ base: "none", lg: "left" }}
-          w={{ base: "full", lg: params.taskId ? "40%" : "full" }}
+          w={{ base: "full", lg: selectedTaskId ? "40%" : "full" }}
           maxH={{ base: "none", lg: "calc(100dvh - 80px)" }}
           overflowY="auto"
         />
@@ -98,13 +95,12 @@ const TasksListPane: React.FC<
     workspaceId,
     projectId,
   });
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
   const untitledTaskColor = useColorModeValue("blackAlpha.600", "gray");
   const titledTaskColor = useColorModeValue("black", "white");
   const activeTaskTrBgColor = useColorModeValue("cyan.300", "cyan.800");
-  const navigate = useNavigate();
-  const params = useParams<{ taskId?: string }>();
-  const activeTaskId = params.taskId ?? "";
+  const activeTaskId = searchParams.get("taskId");
 
   const handleTaskArchivedChange = async (task: Task) => {
     if (!tasks) return;
@@ -115,9 +111,7 @@ const TasksListPane: React.FC<
   const handleAddNewTask = async () => {
     setIsCreatingTask.on();
     const createdTask = await createTask();
-    navigate(
-      `/workspaces/${workspaceId}/projects/${projectId}/tasks/${createdTask.id}`
-    );
+    setSearchParams({ taskId: createdTask.id });
     setIsCreatingTask.off();
   };
 
@@ -178,7 +172,9 @@ const TasksListPane: React.FC<
                   <Td px={2} w="full">
                     <Link
                       as={RRDLink}
-                      to={`/workspaces/${workspaceId}/projects/${projectId}/tasks/${task.id}`}
+                      to={{
+                        search: `taskId=${task.id}`,
+                      }}
                       color={titledTaskColor}
                       _hover={{
                         color: activeTaskId ? "initial" : "cyan.700",

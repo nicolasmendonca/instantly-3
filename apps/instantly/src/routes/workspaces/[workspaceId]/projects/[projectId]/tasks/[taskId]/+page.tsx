@@ -15,7 +15,7 @@ import {
   MenuItem,
 } from "@chakra-ui/react";
 import { useTask } from "./useTask";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { APP_SETTINGS } from "src/features/appSettings";
 import { EditableButton, EditableValue } from "src/components/EditableValue";
 import produce from "immer";
@@ -31,12 +31,12 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
-    taskId: string;
   }>();
+  const [searchParams] = useSearchParams();
 
   const workspaceId = params.workspaceId!;
   const projectId = params.projectId!;
-  const taskId = params.taskId!;
+  const taskId = searchParams.get("taskId")!;
 
   const { data: tasks, mutate: mutateTasks } = useTasks({
     projectId,
