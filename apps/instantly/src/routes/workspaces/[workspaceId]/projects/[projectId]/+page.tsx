@@ -50,8 +50,15 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   }
 
   async function handleCreateTask() {
-    await createTask({
-      status: z.string().parse(project?.defaultTaskStatusId),
+    const createdTask = await createTask(
+      {
+        status: z.string().parse(project?.defaultTaskStatusId),
+      },
+      { revalidate: false }
+    );
+    setSearchParams((prev) => {
+      prev.set("taskId", createdTask.id);
+      return prev;
     });
   }
 
@@ -74,6 +81,28 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
     );
   }
 
+  async function handleTaskUpdated(updatedTask: Task) {
+    if (updatedTask.archived) {
+      // if the task was archived, we remove it from the current list and close the task page
+      mutateTasks(() => tasks?.filter((task) => task.id !== selectedTaskId));
+      setSearchParams((prev) => {
+        prev.delete("taskId");
+        return prev;
+      });
+    } else {
+      // otherwise, we update the task in the current list
+      mutateTasks(() => {
+        const taskIndex = tasks!.findIndex(
+          (task) => task.id === updatedTask.id
+        );
+        if (taskIndex === -1) return tasks;
+        return produce(tasks!, (draft) => {
+          draft[taskIndex] = updatedTask;
+        });
+      });
+    }
+  }
+
   if (!tasks) return null;
 
   return (
@@ -91,7 +120,10 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
             borderLeftWidth="1px"
             borderLeftColor={dividerColor}
           >
-            <TaskIdPage onDeleteTaskIntent={handleDeleteTask} />
+            <TaskIdPage
+              onDeleteTaskIntent={handleDeleteTask}
+              onTaskUpdated={handleTaskUpdated}
+            />
           </Box>
         </>
       )}

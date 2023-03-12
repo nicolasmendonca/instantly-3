@@ -30,7 +30,8 @@ type UseTasksKey = UseTasksParam & {
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   createTask: (
-    taskPayload: Pick<Task, "status"> & Partial<Omit<Task, "id">>
+    taskPayload: Pick<Task, "status"> & Partial<Omit<Task, "id">>,
+    mutatorOptions?: MutatorOptions
   ) => Promise<Task>;
   toggleTaskArchived: (
     taskId: Task["id"],
@@ -64,7 +65,8 @@ export function useTasks(
   );
 
   const createTask: UseProjectTasksReturnType["createTask"] = async (
-    taskPayload
+    taskPayload,
+    mutatorOptions = {}
   ) => {
     const task: Omit<Task, "id"> = {
       archived: false,
@@ -85,9 +87,7 @@ export function useTasks(
       tasks?.push(newTask);
     });
 
-    mutate(updatedTasks, {
-      revalidate: false,
-    });
+    mutate(updatedTasks, mutatorOptions);
 
     return newTask;
   };
