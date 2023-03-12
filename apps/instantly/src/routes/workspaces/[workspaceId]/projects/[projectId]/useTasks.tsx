@@ -1,11 +1,27 @@
-import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
-import { Project, Task, Workspace } from "src/features/clients/instantlyClient";
-import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 import produce from "immer";
+import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
+import {
+  Project,
+  Task,
+  TaskStatus,
+  Workspace,
+} from "src/features/clients/instantlyClient";
+import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 type UseTasksParam = {
   workspaceId: Workspace["id"];
   projectId: Project["id"];
+  filters: Partial<UseTasksFilters>;
+};
+
+type UseTasksFilters = {
+  archived?: boolean;
+  status?: TaskStatus["id"];
+};
+
+const useTasksDefaultFilters: UseTasksFilters = {
+  archived: false,
+  status: undefined,
 };
 
 type UseTasksKey = UseTasksParam & {
@@ -13,6 +29,9 @@ type UseTasksKey = UseTasksParam & {
 };
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
+  createTask: (
+    taskPayload: Partial<Omit<Task, "id">> & Pick<Task, "status">
+  ) => Promise<Task>;
   toggleTaskArchived: (
     taskId: Task["id"],
     mutatorOptions?: MutatorOptions
@@ -25,7 +44,7 @@ type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
 };
 
 export function useTasks(
-  { workspaceId, projectId }: UseTasksParam,
+  { workspaceId, projectId, filters = {} }: UseTasksParam,
   swrConfig: SWRConfiguration = {}
 ): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
@@ -34,18 +53,47 @@ export function useTasks(
       key: `tasks`,
       workspaceId,
       projectId,
+      filters: { ...useTasksDefaultFilters, ...filters },
     }),
     instantlyClient.getTasksForProject,
     swrConfig
   );
+
+  const createTask: UseProjectTasksReturnType["createTask"] = async (
+    taskPayload
+  ) => {
+    const task: Omit<Task, "id"> = {
+      archived: false,
+      title: "",
+      description: "",
+      ...taskPayload,
+    };
+
+    const newTask = await instantlyClient.createTask(
+      {
+        projectId,
+        workspaceId,
+      },
+      task
+    );
+
+    const updatedTasks = produce(data, (tasks) => {
+      tasks?.push(newTask);
+    });
+
+    mutate(updatedTasks, {
+      revalidate: false,
+    });
+
+    return newTask;
+  };
 
   const updateTask: UseProjectTasksReturnType["updateTask"] = async (
     taskId,
     updatedTask,
     mutatorOptions = {}
   ) => {
-    if (!data) throw new Error("No data found on useProjectTasks@updateTask");
-    const optimisticData = produce(data, (draft) => {
+    const optimisticData = produce(data!, (draft) => {
       const taskIndex = draft.findIndex((_task) => _task.id === taskId);
       if (taskIndex === -1)
         throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
@@ -76,13 +124,11 @@ export function useTasks(
         throw new Error("No data found on useProjectTasks@toggleTaskArchived");
 
       const task = data.find((_task) => _task.id === taskId);
-      if (!task)
-        throw new Error("No task found on useProjectTasks@toggleTaskArchived");
-      const updatedTask = produce(task, (draft) => {
+      const updatedTask = produce(task!, (draft) => {
         draft.archived = !draft.archived;
       });
       await updateTask(taskId, updatedTask, mutatorOptions);
     };
 
-  return { data, mutate, toggleTaskArchived, updateTask, ...rest };
+  return { data, mutate, toggleTaskArchived, updateTask, createTask, ...rest };
 }

@@ -2,6 +2,7 @@ import type {
   InstantlyClient,
   Project,
   Task,
+  TaskStatus,
   User,
   Workspace,
   WorkspaceMemberProfile,
@@ -18,6 +19,11 @@ import {
   getDoc,
   doc,
   enableIndexedDbPersistence,
+  updateDoc,
+  query,
+  where,
+  QueryConstraint,
+  deleteDoc,
 } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getPerformance } from "firebase/performance";
@@ -145,11 +151,17 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
   ): Promise<Workspace["id"]> => {
+    const {
+      uid: userCreatorId,
+      photoURL,
+      displayName,
+    } = this.auth.currentUser!;
     const avatarUrl = generateWorkspaceAvatar(name);
     const workspaceCollection = collection(this.firestore, "workspaces");
     const workspaceDoc = await addDoc(workspaceCollection, {
       name,
       avatarUrl,
+      userCreatorId: userCreatorId,
     } satisfies TypesPerFirestorePath["/workspaces/:workspaceId"]);
     const role = "admin";
     await Promise.all([
@@ -157,13 +169,14 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         doc(
           this.firestore,
           "users",
-          this.auth.currentUser!.uid,
+          userCreatorId,
           "workspaces",
           workspaceDoc.id
         ),
         {
           avatarUrl,
           name,
+          userCreatorId,
         } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
       ),
       setDoc(
@@ -172,12 +185,12 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           "workspaces",
           workspaceDoc.id,
           "members",
-          this.auth.currentUser!.uid
+          userCreatorId
         ),
         {
           role,
-          avatarUrl: this.auth.currentUser!.photoURL!,
-          name: this.auth.currentUser!.displayName ?? "Anon",
+          avatarUrl: photoURL!,
+          name: displayName ?? "Anon",
         } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]
       ),
     ]);
@@ -233,10 +246,40 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       workspaceId,
       "projects"
     );
+
+    // Create the project document
     const projectDoc = await addDoc(projectCollection, {
       name,
       emoji: "📝",
+      defaultTaskStatusId: "",
     } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]);
+
+    // Create the default task statuses
+    const taskStatusesCollection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectDoc.id,
+      "task-statuses"
+    );
+
+    const [todoTask] = await Promise.all([
+      addDoc(taskStatusesCollection, {
+        label: "To Do",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      addDoc(taskStatusesCollection, {
+        label: "In Progress",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      addDoc(taskStatusesCollection, {
+        label: "Done",
+      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+    ]);
+
+    // Asign the first "To Do" task status as the default task status for the project
+    await updateDoc(projectDoc, "defaultTaskStatusId", todoTask.id);
+
+    // Return the project id
     return projectDoc.id;
   };
 
@@ -247,19 +290,32 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   public getTasksForProject: InstantlyClient["getTasksForProject"] = async ({
     workspaceId,
     projectId,
+    filters,
   }) => {
     let tasks: Task[] = [];
-    const _collection = await getDocs(
-      collection(
-        this.firestore,
-        "workspaces",
-        workspaceId,
-        "projects",
-        projectId,
-        "tasks"
-      )
+
+    const _collection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectId,
+      "tasks"
     );
-    _collection.forEach((doc) => {
+
+    let _queryFilters: QueryConstraint[] = [];
+
+    if (filters.archived !== undefined) {
+      _queryFilters.push(where("archived", "==", filters.archived));
+    }
+
+    if (filters.status !== undefined) {
+      _queryFilters.push(where("status", "==", filters.status));
+    }
+
+    const _documents = await getDocs(query(_collection, ..._queryFilters));
+
+    _documents.forEach((doc) => {
       tasks.push({
         id: doc.id,
         ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
@@ -291,6 +347,29 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     });
   };
 
+  public createTask: InstantlyClient["createTask"] = async (
+    { projectId, workspaceId },
+    taskPayload
+  ) => {
+    const taskCollection = collection(
+      this.firestore,
+      "workspaces",
+      workspaceId,
+      "projects",
+      projectId,
+      "tasks"
+    );
+    const taskDocRef = await addDoc(
+      taskCollection,
+      taskPayload satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+    );
+    const loadedTask = await getDoc(taskDocRef);
+    return {
+      ...(loadedTask.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
+      id: loadedTask.id,
+    };
+  };
+
   public updateTask: InstantlyClient["updateTask"] = async (
     { workspaceId, projectId, taskId },
     task
@@ -309,6 +388,46 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       taskWithoutId satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
     );
   };
+
+  public deleteTask: InstantlyClient["deleteTask"] = ({
+    workspaceId,
+    projectId,
+    taskId,
+  }) => {
+    return deleteDoc(
+      doc(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "tasks",
+        taskId
+      )
+    );
+  };
+
+  public getTaskStatuses: InstantlyClient["getTaskStatuses"] = async ({
+    workspaceId,
+    projectId,
+  }) => {
+    const statusesCollection = await getDocs(
+      collection(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "task-statuses"
+      )
+    );
+    return statusesCollection.docs.map((doc) => {
+      return {
+        id: doc.id,
+        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      };
+    });
+  };
 }
 
 type TypesPerFirestorePath = {
@@ -322,6 +441,10 @@ type TypesPerFirestorePath = {
   "/workspaces/:workspaceId/projects/:projectId": Omit<Project, "id">;
   "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId": Omit<
     Task,
+    "id"
+  >;
+  "/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId": Omit<
+    TaskStatus,
     "id"
   >;
 };

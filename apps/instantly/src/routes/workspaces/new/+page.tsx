@@ -10,8 +10,15 @@ const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
   const navigate = useNavigate();
   const instantlyClient = useInstantlyClient();
   const handleCreateNewWorkspace = async (name: string) => {
-    const workspaceId = await instantlyClient.createNewWorkspace(name);
-    navigate(`/workspaces/${workspaceId}`);
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        const workspaceId = await instantlyClient.createNewWorkspace(name);
+        navigate(`/workspaces/${workspaceId}`);
+        resolve(undefined);
+      } catch (e) {
+        reject(e instanceof Error ? e.message : e);
+      }
+    });
   };
 
   return (

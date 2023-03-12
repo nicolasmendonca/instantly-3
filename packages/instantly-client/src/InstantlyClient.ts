@@ -4,6 +4,7 @@ import type {
   Task,
   WorkspaceMemberProfile,
   Project,
+  TaskStatus,
 } from "./entities";
 
 type UnsubscribeFn = () => void;
@@ -45,12 +46,23 @@ export interface InstantlyClient {
   getTasksForProject: (params: {
     workspaceId: Workspace["id"];
     projectId: Project["id"];
+    filters: {
+      archived?: boolean;
+      status?: TaskStatus["id"];
+    };
   }) => Promise<Task[]>;
   getTaskForProject: (params: {
     workspaceId: Workspace["id"];
     projectId: Project["id"];
     taskId: Task["id"];
   }) => Promise<Task>;
+  createTask: (
+    params: {
+      workspaceId: Workspace["id"];
+      projectId: Project["id"];
+    },
+    taskPayload: Omit<Task, "id">
+  ) => Promise<Task>;
   updateTask: (
     params: {
       taskId: Task["id"];
@@ -59,4 +71,15 @@ export interface InstantlyClient {
     },
     task: Task
   ) => Promise<void>;
+  deleteTask: (params: {
+    taskId: Task["id"];
+    workspaceId: Workspace["id"];
+    projectId: Project["id"];
+  }) => Promise<void>;
+
+  // Task Statuses
+  getTaskStatuses: (params: {
+    workspaceId: Workspace["id"];
+    projectId: Project["id"];
+  }) => Promise<TaskStatus[]>;
 }

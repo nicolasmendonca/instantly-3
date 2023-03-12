@@ -14,7 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { useWorkspace } from "src/features/workspaces/useWorkspace";
 import { useProjects } from "src/features/projects/useProjects";
-import { Workspace } from "instantly-client";
+import { Project, Workspace } from "instantly-client";
 import { CreateProjectButton } from "./CreateProjectButton";
 import { Link } from "./Link";
 
@@ -90,6 +90,7 @@ export const SidebarContent = ({
           <NavItem
             onLinkClicked={onClose}
             key={project.id}
+            projectId={project.id}
             url={`/workspaces/${workspaceId}/projects/${project.id}`}
           >
             {project.emoji ? `${project.emoji} ${project.name}` : project.name}
@@ -104,14 +105,21 @@ interface NavItemProps extends FlexProps {
   onLinkClicked: () => void;
   children: React.ReactNode;
   url: string;
+  projectId: Project["id"];
 }
-const NavItem = ({ children, url, onLinkClicked, ...rest }: NavItemProps) => {
+const NavItem = ({
+  children,
+  url,
+  onLinkClicked,
+  projectId,
+  ...rest
+}: NavItemProps) => {
   const location = useLocation();
   const activeLinkColor = useColorModeValue("cyan.300", "cyan.800");
   const hoverColor = useColorModeValue("cyan.400", "cyan.600");
   const hoverTextColor = useColorModeValue("black", "white");
 
-  const isActiveRoute = location.pathname === url;
+  const isActiveRoute = location.pathname.includes(projectId);
   return (
     <Link
       to={url}

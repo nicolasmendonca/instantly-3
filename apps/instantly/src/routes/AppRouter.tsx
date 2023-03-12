@@ -8,7 +8,6 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import { CenteredSpinner } from "src/components/CenteredSpinner";
-import TaskIdPage from "./workspaces/[workspaceId]/projects/[projectId]/tasks/[taskId]/+page";
 
 const WorkspacesPage = React.lazy(() => import("./workspaces/+page"));
 const NewWorkspacePage = React.lazy(() => import("./workspaces/new/+page"));
@@ -63,18 +62,6 @@ const router = createBrowserRouter([
             <ProjectIdPage />
           </Suspense>
         ),
-        children: [
-          {
-            path: "tasks/:taskId",
-            element: (
-              <Suspense
-                fallback={<CenteredSpinner height={centeredLayoutHeight} />}
-              >
-                <TaskIdPage />
-              </Suspense>
-            ),
-          },
-        ],
       },
     ],
   },
