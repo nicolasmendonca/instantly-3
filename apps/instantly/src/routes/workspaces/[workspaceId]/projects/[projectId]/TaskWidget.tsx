@@ -23,12 +23,14 @@ import { useTasks } from "./useTasks";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { useTaskStatuses } from "./useTaskStatuses";
 import { HamburgerIcon } from "@chakra-ui/icons";
-import { TaskStatus } from "instantly-client";
+import { Task, TaskStatus } from "instantly-client";
 import { useAuth } from "src/features/auth/AuthProvider";
 
-interface ITaskIdPageProps {}
+interface ITaskIdPageProps {
+  onDeleteTaskIntent: (task: Task) => void;
+}
 
-const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
+const TaskIdPage: React.FC<ITaskIdPageProps> = ({ onDeleteTaskIntent }) => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
@@ -47,11 +49,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
       archived: false,
     },
   });
-  const {
-    data: task,
-    updateTask,
-    deleteTask,
-  } = useTask({
+  const { data: task, updateTask } = useTask({
     workspaceId,
     projectId,
     taskId,
@@ -82,10 +80,6 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     );
     mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
   }
-  function handleDeleteTask() {
-    deleteTask(taskId);
-    mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
-  }
 
   function handleChangeTaskStatus(status: TaskStatus) {
     updateTask(
@@ -104,7 +98,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     mutateTasks(updatedTasks);
   }
 
-  if (!tasks || !task || !taskStatuses) return null;
+  if (!task || !taskStatuses) return null;
 
   return (
     <Stack gap={2}>
@@ -149,7 +143,9 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
           </MenuButton>
           <MenuList>
             <MenuItem onClick={handleArchiveTask}>Archive task</MenuItem>
-            <MenuItem onClick={handleDeleteTask}>Delete task</MenuItem>
+            <MenuItem onClick={() => onDeleteTaskIntent(task)}>
+              Delete task
+            </MenuItem>
           </MenuList>
         </Menu>
       </Flex>

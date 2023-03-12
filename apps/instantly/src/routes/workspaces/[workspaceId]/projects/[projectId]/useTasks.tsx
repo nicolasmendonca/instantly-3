@@ -30,7 +30,7 @@ type UseTasksKey = UseTasksParam & {
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   createTask: (
-    taskPayload: Partial<Omit<Task, "id">> & Pick<Task, "status">
+    taskPayload: Pick<Task, "status"> & Partial<Omit<Task, "id">>
   ) => Promise<Task>;
   toggleTaskArchived: (
     taskId: Task["id"],
@@ -39,6 +39,10 @@ type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
   updateTask: (
     taskId: Task["id"],
     updatedTask: Task,
+    mutatorOptions?: MutatorOptions
+  ) => Promise<void>;
+  deleteTask: (
+    taskId: Task["id"],
     mutatorOptions?: MutatorOptions
   ) => Promise<void>;
 };
@@ -130,5 +134,34 @@ export function useTasks(
       await updateTask(taskId, updatedTask, mutatorOptions);
     };
 
-  return { data, mutate, toggleTaskArchived, updateTask, createTask, ...rest };
+  const deleteTask: UseProjectTasksReturnType["deleteTask"] = async (
+    taskId,
+    mutatorOptions = {}
+  ) => {
+    const optimisticData = data?.filter((task) => task.id !== taskId);
+    mutate(
+      async () => {
+        await instantlyClient.deleteTask({
+          workspaceId,
+          projectId,
+          taskId,
+        });
+        return optimisticData;
+      },
+      {
+        optimisticData,
+        ...mutatorOptions,
+      }
+    );
+  };
+
+  return {
+    data,
+    mutate,
+    toggleTaskArchived,
+    updateTask,
+    createTask,
+    deleteTask,
+    ...rest,
+  };
 }

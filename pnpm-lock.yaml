@@ -69,9 +69,11 @@ importers:
     specifiers:
       firebase: ^9.17.2
       instantly-client: workspace:*
+      zod: ^3.21.4
     dependencies:
       firebase: 9.17.2
       instantly-client: link:../instantly-client
+      zod: 3.21.4
 
 packages:
 
