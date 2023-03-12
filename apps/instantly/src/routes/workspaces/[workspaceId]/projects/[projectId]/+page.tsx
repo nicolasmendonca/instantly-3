@@ -157,9 +157,8 @@ const TasksListPane: React.FC<
             {tasks?.map((task) => {
               const taskStatus = taskStatuses.find(
                 (taskStatus) => taskStatus.id === task.status
-              );
+              )!;
 
-              if (!taskStatus) throw new Error("Task status not found");
               return (
                 <Tr
                   key={task.id}

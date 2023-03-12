@@ -32,6 +32,7 @@ importers:
       typescript: ^4.9.3
       vite: ^4.1.0
       vite-tsconfig-paths: ^4.0.5
+      zod: ^3.21.4
     dependencies:
       '@chakra-ui/icons': 2.0.17_n3dxrjldmk5gnycgnw7noyo5tu
       '@chakra-ui/react': 2.5.1_llidv3byuxn3l2nsibklt32qgu
@@ -47,6 +48,7 @@ importers:
       react-hook-form: 7.43.4_react@18.2.0
       react-router-dom: 6.8.2_biqbaboplfbrettd7655fr4n2y
       swr: 2.0.4_react@18.2.0
+      zod: 3.21.4
     devDependencies:
       '@types/react': 18.0.28
       '@types/react-dom': 18.0.11
@@ -3767,4 +3769,8 @@ packages:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 20.2.9
+    dev: false
+
+  /zod/3.21.4:
+    resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
     dev: false

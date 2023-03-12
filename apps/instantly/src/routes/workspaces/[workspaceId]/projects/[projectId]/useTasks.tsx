@@ -93,8 +93,7 @@ export function useTasks(
     updatedTask,
     mutatorOptions = {}
   ) => {
-    if (!data) throw new Error("No data found on useProjectTasks@updateTask");
-    const optimisticData = produce(data, (draft) => {
+    const optimisticData = produce(data!, (draft) => {
       const taskIndex = draft.findIndex((_task) => _task.id === taskId);
       if (taskIndex === -1)
         throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
@@ -125,9 +124,7 @@ export function useTasks(
         throw new Error("No data found on useProjectTasks@toggleTaskArchived");
 
       const task = data.find((_task) => _task.id === taskId);
-      if (!task)
-        throw new Error("No task found on useProjectTasks@toggleTaskArchived");
-      const updatedTask = produce(task, (draft) => {
+      const updatedTask = produce(task!, (draft) => {
         draft.archived = !draft.archived;
       });
       await updateTask(taskId, updatedTask, mutatorOptions);

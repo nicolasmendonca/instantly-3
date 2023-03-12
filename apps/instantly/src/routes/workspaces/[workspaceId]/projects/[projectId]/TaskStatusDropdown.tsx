@@ -38,8 +38,7 @@ export const TaskStatusDropdown: React.FC<ITaskStatusDropdownProps> = ({
           onChange={(newStatusId) => {
             const matchingStatus = statusOptions.find(
               (status) => status.id === newStatusId
-            );
-            if (!matchingStatus) throw new Error("No matching status found");
+            )!;
             onChange(matchingStatus);
           }}
           value={currentStatus.id}

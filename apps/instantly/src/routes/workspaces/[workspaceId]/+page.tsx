@@ -1,7 +1,6 @@
 import React from "react";
 import { Workspace } from "instantly-client";
 import { useParams } from "react-router-dom";
-import { SidebarWithHeader } from "src/components/Sidebar";
 import { Box, Center, Img } from "@chakra-ui/react";
 
 interface IWorkspaceIdPageProps {}

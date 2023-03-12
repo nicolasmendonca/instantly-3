@@ -151,11 +151,17 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
     name
   ): Promise<Workspace["id"]> => {
+    const {
+      uid: userCreatorId,
+      photoURL,
+      displayName,
+    } = this.auth.currentUser!;
     const avatarUrl = generateWorkspaceAvatar(name);
     const workspaceCollection = collection(this.firestore, "workspaces");
     const workspaceDoc = await addDoc(workspaceCollection, {
       name,
       avatarUrl,
+      userCreatorId: userCreatorId,
     } satisfies TypesPerFirestorePath["/workspaces/:workspaceId"]);
     const role = "admin";
     await Promise.all([
@@ -163,13 +169,14 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         doc(
           this.firestore,
           "users",
-          this.auth.currentUser!.uid,
+          userCreatorId,
           "workspaces",
           workspaceDoc.id
         ),
         {
           avatarUrl,
           name,
+          userCreatorId,
         } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
       ),
       setDoc(
@@ -178,12 +185,12 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           "workspaces",
           workspaceDoc.id,
           "members",
-          this.auth.currentUser!.uid
+          userCreatorId
         ),
         {
           role,
-          avatarUrl: this.auth.currentUser!.photoURL!,
-          name: this.auth.currentUser!.displayName ?? "Anon",
+          avatarUrl: photoURL!,
+          name: displayName ?? "Anon",
         } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]
       ),
     ]);

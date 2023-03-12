@@ -24,6 +24,7 @@ import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { useTaskStatuses } from "./useTaskStatuses";
 import { HamburgerIcon } from "@chakra-ui/icons";
 import { TaskStatus } from "instantly-client";
+import { useAuth } from "src/features/auth/AuthProvider";
 
 interface ITaskIdPageProps {}
 
@@ -33,6 +34,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     workspaceId: string;
   }>();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
 
   const workspaceId = params.workspaceId!;
   const projectId = params.projectId!;
@@ -53,6 +55,7 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     workspaceId,
     projectId,
     taskId,
+    userId: user?.id,
   });
   const { data: taskStatuses } = useTaskStatuses({
     projectId,
@@ -66,42 +69,33 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     }
   }, [task?.title]);
 
-  if (!task || !taskStatuses) return null;
-  const currentTaskStatus = taskStatuses.find(
-    (status) => status.id === task.status
-  );
-  if (!currentTaskStatus) throw new Error("Task status not found");
+  const currentTaskStatus = taskStatuses!.find(
+    (status) => status.id === task!.status
+  )!;
 
   async function handleArchiveTask() {
-    if (!task) throw new Error("Task not found");
-    if (!tasks) throw new Error("Tasks not found");
     await updateTask(
       taskId,
-      produce(task, (draft) => {
+      produce(task!, (draft) => {
         draft.archived = true;
       })
     );
     mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
   }
   function handleDeleteTask() {
-    if (!task) throw new Error("Task not found");
-    if (!tasks) throw new Error("Tasks not found");
     deleteTask(taskId);
     mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
   }
 
   function handleChangeTaskStatus(status: TaskStatus) {
-    if (!task) throw new Error("Task not found");
     updateTask(
       taskId,
-      produce(task, (draft) => {
+      produce(task!, (draft) => {
         draft.status = status.id;
       })
     );
 
-    if (!tasks) return;
-
-    const updatedTasks = produce(tasks, (draft) => {
+    const updatedTasks = produce(tasks!, (draft) => {
       const taskIndex = draft.findIndex((_task) => _task.id === taskId);
       if (taskIndex === -1)
         throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
@@ -109,6 +103,8 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     });
     mutateTasks(updatedTasks);
   }
+
+  if (!tasks || !task || !taskStatuses) return null;
 
   return (
     <Stack gap={2}>
