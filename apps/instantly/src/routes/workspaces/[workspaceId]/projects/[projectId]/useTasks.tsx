@@ -7,7 +7,6 @@ import {
   Workspace,
 } from "src/features/clients/instantlyClient";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
-import { useProject } from "src/features/projects/useProject";
 
 type UseTasksParam = {
   workspaceId: Workspace["id"];
@@ -30,7 +29,9 @@ type UseTasksKey = UseTasksParam & {
 };
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
-  createTask: (taskPayload?: Partial<Omit<Task, "id">>) => Promise<Task>;
+  createTask: (
+    taskPayload: Partial<Omit<Task, "id">> & Pick<Task, "status">
+  ) => Promise<Task>;
   toggleTaskArchived: (
     taskId: Task["id"],
     mutatorOptions?: MutatorOptions
@@ -47,10 +48,6 @@ export function useTasks(
   swrConfig: SWRConfiguration = {}
 ): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
-  const { data: project } = useProject({
-    workspaceId,
-    projectId,
-  });
   const { data, mutate, ...rest } = useSWR<Task[], any, () => UseTasksKey>(
     () => ({
       key: `tasks`,
@@ -65,13 +62,10 @@ export function useTasks(
   const createTask: UseProjectTasksReturnType["createTask"] = async (
     taskPayload
   ) => {
-    if (!project)
-      throw new Error("No project found on useProjectTasks@createTask");
     const task: Omit<Task, "id"> = {
       archived: false,
       title: "",
       description: "",
-      status: project.defaultTaskStatusId,
       ...taskPayload,
     };
 

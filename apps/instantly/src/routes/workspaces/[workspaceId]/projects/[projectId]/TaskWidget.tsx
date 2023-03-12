@@ -19,9 +19,9 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { APP_SETTINGS } from "src/features/appSettings";
 import { EditableButton, EditableValue } from "src/components/EditableValue";
 import produce from "immer";
-import { useTasks } from "../../useTasks";
-import { TaskStatusDropdown } from "../../TaskStatusDropdown";
-import { useTaskStatuses } from "../../useTaskStatuses";
+import { useTasks } from "./useTasks";
+import { TaskStatusDropdown } from "./TaskStatusDropdown";
+import { useTaskStatuses } from "./useTaskStatuses";
 import { HamburgerIcon } from "@chakra-ui/icons";
 import { TaskStatus } from "instantly-client";
 

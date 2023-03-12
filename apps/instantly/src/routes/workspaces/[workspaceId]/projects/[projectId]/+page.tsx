@@ -23,7 +23,8 @@ import { useTasks } from "./useTasks";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import produce from "immer";
 import { useTaskStatuses } from "./useTaskStatuses";
-import TaskIdPage from "./tasks/[taskId]/+page";
+import TaskIdPage from "./TaskWidget";
+import { useProject } from "./useProject";
 
 interface IProjectIdPageProps {}
 
@@ -95,6 +96,10 @@ const TasksListPane: React.FC<
     workspaceId,
     projectId,
   });
+  const { data: project } = useProject({
+    workspaceId,
+    projectId,
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
   const untitledTaskColor = useColorModeValue("blackAlpha.600", "gray");
@@ -110,13 +115,14 @@ const TasksListPane: React.FC<
 
   const handleAddNewTask = async () => {
     setIsCreatingTask.on();
-    const createdTask = await createTask();
+    const createdTask = await createTask({
+      status: project!.defaultTaskStatusId,
+    });
     setSearchParams({ taskId: createdTask.id });
     setIsCreatingTask.off();
   };
 
   const handleChangeTaskStatus = async (task: Task, status: TaskStatus) => {
-    if (!tasks) return;
     updateTask(
       task.id,
       produce(task, (draft) => {
