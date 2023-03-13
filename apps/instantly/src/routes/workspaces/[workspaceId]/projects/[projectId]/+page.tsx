@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, useColorModeValue } from "@chakra-ui/react";
 import { useParams, useSearchParams } from "react-router-dom";
-import TaskIdPage from "./TaskWidget";
+import { TaskWidget } from "./TaskWidget";
 import { z } from "zod";
 import { TasksListPane } from "./TasksListPane";
 import { useTasks } from "./useTasks";
@@ -40,6 +40,11 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTaskId = searchParams.get("taskId");
   const dividerColor = useColorModeValue("gray.200", "gray.700");
+
+  const selectedTask = React.useMemo(() => {
+    if (!selectedTaskId) return undefined;
+    return tasks?.find((_task) => _task.id === selectedTaskId);
+  }, [selectedTaskId, tasks]);
 
   function handleDeleteTask(task: Task) {
     setSearchParams((prev) => {
@@ -120,7 +125,8 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
             borderLeftWidth="1px"
             borderLeftColor={dividerColor}
           >
-            <TaskIdPage
+            <TaskWidget
+              initialTaskData={selectedTask}
               onDeleteTaskIntent={handleDeleteTask}
               onTaskUpdated={handleTaskUpdated}
             />

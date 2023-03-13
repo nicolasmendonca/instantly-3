@@ -25,14 +25,16 @@ import { HamburgerIcon } from "@chakra-ui/icons";
 import { Task, TaskStatus } from "instantly-client";
 import { useAuth } from "src/features/auth/AuthProvider";
 
-interface ITaskIdPageProps {
+interface ITaskWidgetProps {
   onDeleteTaskIntent: (task: Task) => void;
   onTaskUpdated: (updatedTask: Task) => void;
+  initialTaskData?: Task;
 }
 
-const TaskIdPage: React.FC<ITaskIdPageProps> = ({
+export const TaskWidget: React.FC<ITaskWidgetProps> = ({
   onDeleteTaskIntent,
   onTaskUpdated,
+  initialTaskData,
 }) => {
   const params = useParams<{
     projectId: string;
@@ -45,12 +47,17 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = ({
   const projectId = params.projectId!;
   const taskId = searchParams.get("taskId")!;
 
-  const { data: task, updateTask } = useTask({
-    workspaceId,
-    projectId,
-    taskId,
-    userId: user?.id,
-  });
+  const { data: task, updateTask } = useTask(
+    {
+      workspaceId,
+      projectId,
+      taskId,
+      userId: user?.id,
+    },
+    {
+      fallbackData: initialTaskData,
+    }
+  );
   const { data: taskStatuses } = useTaskStatuses({
     projectId,
     workspaceId,
@@ -161,5 +168,3 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = ({
     </Stack>
   );
 };
-
-export default TaskIdPage;
