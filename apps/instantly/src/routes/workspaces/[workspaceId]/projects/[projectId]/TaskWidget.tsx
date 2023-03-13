@@ -22,7 +22,7 @@ import produce from "immer";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { useTaskStatuses } from "./useTaskStatuses";
 import { HamburgerIcon } from "@chakra-ui/icons";
-import { Task, TaskStatus } from "instantly-client";
+import { Task, TaskStatus } from "instantly-core";
 import { useAuth } from "src/features/auth/AuthProvider";
 
 interface ITaskWidgetProps {
@@ -78,9 +78,7 @@ export const TaskWidget: React.FC<ITaskWidgetProps> = ({
     const updatedTask = produce(task!, (draft) => {
       draft.archived = true;
     });
-    updateTask(taskId, updatedTask, {
-      revalidate: false,
-    });
+    updateTask(updatedTask);
     onTaskUpdated(updatedTask);
   }
 
@@ -88,10 +86,7 @@ export const TaskWidget: React.FC<ITaskWidgetProps> = ({
     const updatedTask = produce(task!, (draft) => {
       draft.status = status.id;
     });
-    updateTask(taskId, updatedTask, {
-      revalidate: false,
-    });
-
+    updateTask(updatedTask);
     onTaskUpdated(updatedTask);
   }
 
@@ -107,7 +102,7 @@ export const TaskWidget: React.FC<ITaskWidgetProps> = ({
           const updatedTask = produce(task, (draft) => {
             draft.title = newTitle;
           });
-          updateTask(taskId, updatedTask);
+          updateTask(updatedTask);
           onTaskUpdated(updatedTask);
         }}
         fontSize="2xl"
@@ -152,7 +147,7 @@ export const TaskWidget: React.FC<ITaskWidgetProps> = ({
           const updatedTask = produce(task, (draft) => {
             draft.description = newDescription;
           });
-          updateTask(taskId, updatedTask);
+          updateTask(updatedTask);
           onTaskUpdated(updatedTask);
         }}
       >

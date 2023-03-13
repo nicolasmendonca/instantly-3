@@ -1,15 +1,13 @@
-import type {
+import {
   InstantlyClient,
   Project,
   Task,
-  TaskStatus,
-  User,
+  userSchema,
   Workspace,
-  WorkspaceMemberProfile,
-} from "instantly-client";
+  WorkspaceMember,
+} from "instantly-core";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
-  addDoc,
   setDoc,
   collection,
   initializeFirestore,
@@ -19,7 +17,6 @@ import {
   getDoc,
   doc,
   enableIndexedDbPersistence,
-  updateDoc,
   query,
   where,
   QueryConstraint,
@@ -34,25 +31,17 @@ import {
   Unsubscribe,
   type Auth,
 } from "firebase/auth";
-import { generateWorkspaceAvatar } from "./avatar";
-import {
-  workspaceSchema,
-  workspaceWithoutIdSchema,
-} from "./schemas/workspace.schema";
-import { userProfileWithoutIdSchema } from "./schemas/userProfile.schema";
+import { workspaceSchema } from "./schemas/workspace.schema";
 import {
   workspaceMemberSchema,
   workspaceMemberWithoutIdSchema,
 } from "./schemas/workspaceMember.schema";
+import { projectSchema } from "./schemas/project.schema";
 import {
-  projectSchema,
-  projectWithoutIdSchema,
-} from "./schemas/project.schema";
-import {
+  taskStatusListSchema,
   taskStatusSchema,
-  taskStatusWithoudIdSchema,
 } from "./schemas/taskStatus.schema";
-import { taskSchema, taskWithoutIdSchema } from "./schemas/task.schema";
+import { taskSchema } from "./schemas/task.schema";
 
 export class InstantlyFirebaseClient implements InstantlyClient {
   private app: FirebaseApp;
@@ -77,23 +66,15 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     getAnalytics(this.app);
   }
 
-  private async waitForAuthInit() {
-    let unsubscribe: Unsubscribe;
-    await new Promise<void>((resolve) => {
-      unsubscribe = this.auth.onAuthStateChanged((_) => resolve());
-    });
-    (await unsubscribe!)();
-  }
-
   public getAuthUser: InstantlyClient["getAuthUser"] = async () => {
     // Firebase needs to wait until onAuthStateChange is initialized before it can resolve the user
-    await this.waitForAuthInit();
     const currentUser = this.auth.currentUser;
     return currentUser
-      ? {
+      ? userSchema.parse({
           id: currentUser.uid,
           name: currentUser.displayName ?? "Anon",
-        }
+          avatarUrl: currentUser.photoURL!,
+        })
       : null;
   };
 
@@ -115,18 +96,17 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       const currentUser = this.auth.currentUser;
 
       if (currentUser) {
+        const { id, ...userWithoutId } = userSchema.parse({
+          id: currentUser.uid,
+          name: currentUser.displayName,
+          avatarUrl: currentUser.photoURL,
+        });
         const userDoc = doc(this.firestore, "users", currentUser.uid);
         await runTransaction(this.firestore, async (transaction) => {
           const userDocSnapshot = await transaction.get(userDoc);
           // If the user profile doesn't exist, create it
           if (!userDocSnapshot.exists()) {
-            transaction.set(
-              userDoc,
-              userProfileWithoutIdSchema.parse({
-                name: currentUser.displayName,
-                avatarUrl: currentUser.photoURL,
-              })
-            );
+            transaction.set(userDoc, userWithoutId);
           }
         });
       }
@@ -171,65 +151,50 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       return workspaces;
     };
 
-  public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async (
-    name
-  ): Promise<Workspace["id"]> => {
-    const {
-      uid: userCreatorId,
-      photoURL: userAvatarUrl,
-      displayName: userDisplayName,
-    } = this.auth.currentUser!;
-    const avatarUrl = generateWorkspaceAvatar(name);
-    const workspaceCollection = collection(this.firestore, "workspaces");
-    const workspaceCreationPayload = workspaceWithoutIdSchema.parse({
-      name,
-      avatarUrl,
-      userCreatorId,
-    });
-    const workspaceDoc = await addDoc(
-      workspaceCollection,
-      workspaceCreationPayload
-    );
-    const role = "admin";
+  public createNewWorkspace: InstantlyClient["createNewWorkspace"] = async ({
+    workspace,
+    workspaceMember,
+  }): Promise<void> => {
+    const { id: workspaceId, ...workspaceWithoutId } =
+      workspaceSchema.parse(workspace);
+    const workspaceDoc = doc(this.firestore, "workspaces", workspaceId);
     await Promise.all([
+      setDoc(workspaceDoc, workspaceWithoutId),
       setDoc(
         doc(
           this.firestore,
           "users",
-          userCreatorId,
+          workspaceMember.id,
           "workspaces",
-          workspaceDoc.id
+          workspaceId
         ),
-        workspaceCreationPayload
+        workspaceWithoutId
       ),
       setDoc(
         doc(
           this.firestore,
           "workspaces",
-          workspaceDoc.id,
+          workspaceId,
           "members",
-          userCreatorId
+          workspaceMember.id
         ),
-        workspaceMemberWithoutIdSchema.parse({
-          role,
-          avatarUrl: userAvatarUrl!,
-          name: userDisplayName,
-        })
+        workspaceMemberWithoutIdSchema.parse(workspaceMember)
       ),
     ]);
-    return workspaceDoc.id;
   };
 
-  public getWorkspaceMemberProfile: InstantlyClient["getWorkspaceMemberProfile"] =
-    async ({ workspaceId, memberId }): Promise<WorkspaceMemberProfile> => {
-      const workspaceMemberProfileDoc = await getDoc(
-        doc(this.firestore, "workspaces", workspaceId, "members", memberId)
-      );
-      return workspaceMemberSchema.parse({
-        id: workspaceMemberProfileDoc.id,
-        ...workspaceMemberProfileDoc.data(),
-      });
-    };
+  public getWorkspaceMember: InstantlyClient["getWorkspaceMember"] = async ({
+    workspaceId,
+    memberId,
+  }): Promise<WorkspaceMember> => {
+    const workspaceMemberProfileDoc = await getDoc(
+      doc(this.firestore, "workspaces", workspaceId, "members", memberId)
+    );
+    return workspaceMemberSchema.parse({
+      id: workspaceMemberProfileDoc.id,
+      ...workspaceMemberProfileDoc.data(),
+    });
+  };
 
   /**
    * Projects
@@ -261,60 +226,40 @@ export class InstantlyFirebaseClient implements InstantlyClient {
 
   public createProject: InstantlyClient["createProject"] = async ({
     workspaceId,
-    name,
-  }): Promise<Project["id"]> => {
-    const projectCollection = collection(
-      this.firestore,
-      "workspaces",
-      workspaceId,
-      "projects"
-    );
-
-    const projectPayload = projectWithoutIdSchema.parse({
-      name,
-      emoji: "📝",
-      defaultTaskStatusId: "",
-    });
-
-    // Create the project document
-    const projectDoc = await addDoc(projectCollection, projectPayload);
-
-    // Create the default task statuses
-    const taskStatusesCollection = collection(
+    project,
+    taskStatuses,
+  }): Promise<void> => {
+    const { id: projectId, ...projectWithoutId } = projectSchema.parse(project);
+    const validatedTaskStatuses = taskStatusListSchema.parse(taskStatuses);
+    taskStatusSchema;
+    const projectDoc = doc(
       this.firestore,
       "workspaces",
       workspaceId,
       "projects",
-      projectDoc.id,
-      "task-statuses"
+      projectId
     );
 
-    const [todoTask] = await Promise.all([
-      addDoc(
-        taskStatusesCollection,
-        taskStatusWithoudIdSchema.parse({
-          label: "To Do",
-        })
-      ),
-      addDoc(
-        taskStatusesCollection,
-        taskStatusWithoudIdSchema.parse({
-          label: "In Progress",
-        })
-      ),
-      addDoc(
-        taskStatusesCollection,
-        taskStatusWithoudIdSchema.parse({
-          label: "Done",
-        })
-      ),
-    ]);
+    // Create the project document
+    await setDoc(projectDoc, projectWithoutId);
 
-    // Asign the first "To Do" task status as the default task status for the project
-    await updateDoc(projectDoc, "defaultTaskStatusId", todoTask.id);
+    const taskStatusPromises = validatedTaskStatuses.map((taskStatus) => {
+      const taskStatusDoc = doc(
+        this.firestore,
+        "workspaces",
+        workspaceId,
+        "projects",
+        projectId,
+        "task-statuses",
+        taskStatus.id
+      );
 
-    // Return the project id
-    return projectDoc.id;
+      const { id, ...taskStatusRest } = taskStatus;
+
+      return setDoc(taskStatusDoc, taskStatusRest);
+    });
+
+    await Promise.all(taskStatusPromises);
   };
 
   /**
@@ -387,30 +332,24 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     { projectId, workspaceId },
     taskPayload
   ) => {
-    const taskCollection = collection(
+    const { id: taskId, ...taskWithoutId } = taskSchema.parse(taskPayload);
+    const taskDoc = doc(
       this.firestore,
       "workspaces",
       workspaceId,
       "projects",
       projectId,
-      "tasks"
+      "tasks",
+      taskId
     );
-    const taskDocRef = await addDoc(
-      taskCollection,
-      taskWithoutIdSchema.parse(taskPayload)
-    );
-    const loadedTask = await getDoc(taskDocRef);
-    return taskSchema.parse({
-      id: loadedTask.id,
-      ...loadedTask.data(),
-    });
+    await setDoc(taskDoc, taskWithoutId);
   };
 
   public updateTask: InstantlyClient["updateTask"] = async (
-    { workspaceId, projectId, taskId },
+    { workspaceId, projectId },
     task
   ): Promise<void> => {
-    const { id, ...taskWithoutId } = task;
+    const { id: taskId, ...taskWithoutId } = taskSchema.parse(task);
     await setDoc(
       doc(
         this.firestore,
@@ -421,7 +360,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         "tasks",
         taskId
       ),
-      taskWithoutIdSchema.parse(taskWithoutId)
+      taskWithoutId
     );
   };
 

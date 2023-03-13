@@ -11,7 +11,7 @@ import {
   MenuProps,
 } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
-import { TaskStatus } from "instantly-client";
+import { TaskStatus } from "instantly-core";
 
 interface ITaskStatusDropdownProps {
   onChange: (status: TaskStatus) => void;

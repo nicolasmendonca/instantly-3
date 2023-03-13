@@ -14,7 +14,13 @@ import {
 } from "@chakra-ui/react";
 import { useWorkspace } from "src/features/workspaces/useWorkspace";
 import { useProjects } from "src/features/projects/useProjects";
-import { Project, Workspace } from "instantly-client";
+import {
+  buildProjectObject,
+  buildTaskStatusObject,
+  Project,
+  TaskStatus,
+  Workspace,
+} from "instantly-core";
 import { CreateProjectButton } from "./CreateProjectButton";
 import { Link } from "./Link";
 
@@ -31,11 +37,37 @@ export const SidebarContent = ({
   ...rest
 }: SidebarProps) => {
   const { data: workspace } = useWorkspace({ workspaceId });
-  const { data: projects, mutate: mutateProjects } = useProjects({
+  const { data: projects, create } = useProjects({
     workspaceId,
   });
   const sidebarBg = useColorModeValue("white", "gray.900");
   const navigate = useNavigate();
+
+  async function handleCreateProject(projectName: Project["name"]) {
+    const taskStatuses: TaskStatus[] = [
+      buildTaskStatusObject({
+        label: "To Do",
+      }),
+      buildTaskStatusObject({
+        label: "In Progress",
+      }),
+      buildTaskStatusObject({
+        label: "Done",
+      }),
+    ];
+    const project: Project = buildProjectObject({
+      name: projectName,
+      defaultTaskStatusId: taskStatuses[0].id,
+    });
+
+    create({
+      project,
+      taskStatuses,
+      workspaceId,
+    });
+
+    navigate(`/workspaces/${workspaceId}/projects/${project.id}`);
+  }
 
   return (
     <Box
@@ -76,15 +108,11 @@ export const SidebarContent = ({
         <Box mx="4" my="4">
           <CreateProjectButton
             workspaceId={workspaceId}
-            onProjectCreated={(projectId) => {
-              navigate(`/workspaces/${workspaceId}/projects/${projectId}`);
-              mutateProjects();
-            }}
+            onCreateProject={handleCreateProject}
           />
         </Box>
         <Divider />
       </Box>
-
       <Box pt={2}>
         {projects?.map((project) => (
           <NavItem

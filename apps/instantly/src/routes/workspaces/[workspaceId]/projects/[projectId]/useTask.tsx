@@ -1,4 +1,4 @@
-import { Project, Task, User, Workspace } from "instantly-client";
+import { Project, Task, User, Workspace } from "instantly-core";
 import useSWR, { MutatorOptions, SWRConfiguration, SWRResponse } from "swr";
 import { z } from "zod";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
@@ -18,11 +18,7 @@ type UseTaskKey = UseTaskRequiredParam & {
 };
 
 type UseTaskReturnType = SWRResponse<Task, any, any> & {
-  updateTask: (
-    taskId: Task["id"],
-    task: Task,
-    mutatorOptions?: MutatorOptions
-  ) => Promise<void>;
+  updateTask: (task: Task) => Promise<void>;
 };
 
 const useTaskKeyValidator = z.object({
@@ -38,32 +34,26 @@ export function useTask(
   swrConfig: SWRConfiguration = {}
 ): UseTaskReturnType {
   const instantlyClient = useInstantlyClient();
-  const { data, mutate, ...swr } = useSWR<Task, any, () => UseTaskKey>(
+  const swr = useSWR<Task, any, () => UseTaskKey>(
+    // We use a validator here since we might need to use conditional fetching if some data is not available
+    // So we throw an error if some data is not loaded and avoid loading
     () => useTaskKeyValidator.parse(params),
     instantlyClient.getTaskForProject,
     swrConfig
   );
 
-  const updateTask: UseTaskReturnType["updateTask"] = async (
-    taskId,
-    updatedTask,
-    mutatorOptions = {}
-  ) => {
+  async function optimisticMutate(...args: Parameters<typeof swr.mutate>) {
+    await swr.mutate(args[0], { revalidate: false });
+  }
+
+  const updateTask: UseTaskReturnType["updateTask"] = async (updatedTask) => {
     const { projectId, workspaceId } = useTaskKeyValidator.parse(params);
-    await mutate(
-      async () => {
-        await instantlyClient.updateTask(
-          { taskId, projectId, workspaceId },
-          updatedTask
-        );
-        return updatedTask;
-      },
-      {
-        optimisticData: updatedTask,
-        ...mutatorOptions,
-      }
-    );
+
+    await Promise.all([
+      optimisticMutate(updatedTask),
+      instantlyClient.updateTask({ projectId, workspaceId }, updatedTask),
+    ]);
   };
 
-  return { ...swr, data, mutate, updateTask };
+  return { ...swr, updateTask };
 }

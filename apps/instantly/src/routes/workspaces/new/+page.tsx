@@ -2,18 +2,25 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Center } from "@chakra-ui/react";
 import { CreateNewWorkspace } from "src/features/workspaces/CreateNewWorkspace";
-import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
+import { useAuth } from "src/features/auth/AuthProvider";
+import { buildWorkspaceObject } from "instantly-core";
+import { useWorkspaces } from "../useWorkspaces";
 
 interface NewWorkspacePageProps {}
 
 const NewWorkspacePage: React.FC<NewWorkspacePageProps> = () => {
   const navigate = useNavigate();
-  const instantlyClient = useInstantlyClient();
+  const { user } = useAuth();
+  const { create } = useWorkspaces();
   const handleCreateNewWorkspace = async (name: string) => {
     return new Promise<void>(async (resolve, reject) => {
       try {
-        const workspaceId = await instantlyClient.createNewWorkspace(name);
-        navigate(`/workspaces/${workspaceId}`);
+        const workspacePayload = buildWorkspaceObject({
+          name,
+          userCreatorId: user!.id,
+        });
+        create(workspacePayload);
+        navigate(`/workspaces/${workspacePayload.id}`);
         resolve(undefined);
       } catch (e) {
         reject(e instanceof Error ? e.message : e);

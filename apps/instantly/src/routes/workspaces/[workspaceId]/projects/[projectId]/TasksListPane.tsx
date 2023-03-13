@@ -15,7 +15,7 @@ import {
   Box,
 } from "@chakra-ui/react";
 import { useColorModeValue } from "@chakra-ui/system";
-import { Workspace, Project, Task, TaskStatus } from "instantly-client";
+import { Workspace, Project, Task, TaskStatus } from "instantly-core";
 import React from "react";
 import ConfettiExplosion from "react-confetti-explosion";
 import { Link as RRDLink } from "react-router-dom";

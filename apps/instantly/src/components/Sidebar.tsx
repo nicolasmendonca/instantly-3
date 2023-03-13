@@ -22,11 +22,11 @@ import {
   Img,
 } from "@chakra-ui/react";
 import { FiMenu, FiBell, FiChevronDown } from "react-icons/fi";
-import { Workspace } from "instantly-client";
+import { Workspace } from "instantly-core";
 import { useParams } from "react-router-dom";
 import { useAuth } from "src/features/auth/AuthProvider";
 import { useWorkspace } from "src/features/workspaces/useWorkspace";
-import { useWorkspaceMemberProfile } from "src/features/profile/useWorkspaceMemberProfile";
+import { useWorkspaceMember } from "src/features/profile/useWorkspaceMember";
 import { SidebarContent, SIDEBAR_WIDTH } from "./SidebarContent";
 
 export const SidebarWithHeader: React.FC<{
@@ -71,7 +71,7 @@ interface MobileProps extends FlexProps {
 const MobileNav = ({ onOpen, onClose, ...rest }: MobileProps) => {
   const params = useParams<{ workspaceId: string }>();
   const { logout, user } = useAuth();
-  const { data: workspaceMemberProfile } = useWorkspaceMemberProfile({
+  const { data: workspaceMemberProfile } = useWorkspaceMember({
     memberId: user!.id,
     workspaceId: params!.workspaceId!,
   });

@@ -1,5 +1,5 @@
 import { InstantlyFirebaseClient } from "instantly-firebase-client";
-import type { InstantlyClient } from "instantly-client";
+import type { InstantlyClient } from "instantly-core";
 
 export const instantlyClient: InstantlyClient = new InstantlyFirebaseClient();
-export * from "instantly-client";
+export * from "instantly-core";

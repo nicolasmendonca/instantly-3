@@ -4,10 +4,11 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { TaskWidget } from "./TaskWidget";
 import { z } from "zod";
 import { TasksListPane } from "./TasksListPane";
-import { useTasks } from "./useTasks";
+import { useTasks, useTasksDefaultFilters } from "./useTasks";
 import { useProject } from "./useProject";
 import produce from "immer";
-import { Task, TaskStatus } from "instantly-client";
+import { Task, TaskStatus } from "instantly-core";
+import { generateId } from "src/features/generateId";
 
 interface IProjectIdPageProps {}
 
@@ -29,13 +30,11 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
     createTask,
     updateTask,
     deleteTask,
-    mutate: mutateTasks,
+    optimisticMutate: mutateTasks,
   } = useTasks({
     projectId,
     workspaceId,
-    filters: {
-      archived: false,
-    },
+    filters: useTasksDefaultFilters,
   });
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTaskId = searchParams.get("taskId");
@@ -55,30 +54,32 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   }
 
   async function handleCreateTask() {
-    const createdTask = await createTask(
-      {
-        status: z.string().parse(project?.defaultTaskStatusId),
-      },
-      { revalidate: false }
-    );
+    const newTask: Task = {
+      id: generateId(),
+      archived: false,
+      title: "",
+      description: "",
+      status: z.string().parse(project?.defaultTaskStatusId),
+    };
+    createTask(newTask);
     setSearchParams((prev) => {
-      prev.set("taskId", createdTask.id);
+      prev.set("taskId", newTask.id);
       return prev;
     });
   }
 
   async function handleArchiveTask(task: Task) {
-    await updateTask(
+    updateTask(
       task.id,
       produce(task, (draft) => {
         draft.archived = true;
       })
     );
-    mutateTasks(() => tasks?.filter((task) => task.id !== selectedTaskId));
+    mutateTasks(tasks!.filter((task) => task.id !== selectedTaskId));
   }
 
   async function handleTaskStatusChange(task: Task, status: TaskStatus) {
-    await updateTask(
+    updateTask(
       task.id,
       produce(task, (draft) => {
         draft.status = status.id;
@@ -89,22 +90,19 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   async function handleTaskUpdated(updatedTask: Task) {
     if (updatedTask.archived) {
       // if the task was archived, we remove it from the current list and close the task page
-      mutateTasks(() => tasks?.filter((task) => task.id !== selectedTaskId));
+      mutateTasks(tasks!.filter((task) => task.id !== selectedTaskId));
       setSearchParams((prev) => {
         prev.delete("taskId");
         return prev;
       });
     } else {
-      // otherwise, we update the task in the current list
-      mutateTasks(() => {
-        const taskIndex = tasks!.findIndex(
-          (task) => task.id === updatedTask.id
-        );
-        if (taskIndex === -1) return tasks;
-        return produce(tasks!, (draft) => {
-          draft[taskIndex] = updatedTask;
-        });
+      const taskIndex = tasks!.findIndex((task) => task.id === updatedTask.id);
+      if (taskIndex === -1) return tasks;
+      const updatedTasks = produce(tasks!, (draft) => {
+        draft[taskIndex] = updatedTask;
       });
+      // otherwise, we update the task in the current list
+      mutateTasks(updatedTasks);
     }
   }
 

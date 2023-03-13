@@ -1,5 +1,5 @@
 import React from "react";
-import type { InstantlyClient } from "instantly-client";
+import type { InstantlyClient } from "instantly-core";
 import { instantlyClient } from "./instantlyClient";
 
 const InstantlyClientContext = React.createContext<InstantlyClient | undefined>(

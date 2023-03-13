@@ -1,4 +1,4 @@
-import useSWR, { SWRResponse } from "swr";
+import useSWR, { preload, SWRResponse } from "swr";
 import {
   Project,
   TaskStatus,
@@ -11,23 +11,33 @@ type UseTaskStatusesParams = {
   workspaceId: Workspace["id"];
 };
 
+type UseTaskStatusesKey = UseTaskStatusesParams & {
+  key: "task-statuses";
+};
+
 export function useTaskStatuses({
   workspaceId,
   projectId,
-}: UseTaskStatusesParams): SWRResponse<TaskStatus[], any, any> {
+}: UseTaskStatusesParams): SWRResponse<TaskStatus[], any, UseTaskStatusesKey> {
   const instantlyClient = useInstantlyClient();
-  return useSWR<
-    TaskStatus[],
-    any,
-    () => UseTaskStatusesParams & {
-      key: `task-statuses`;
-    }
-  >(
+  return useSWR<TaskStatus[], any, () => UseTaskStatusesKey>(
     () => ({
       projectId,
       workspaceId,
-      key: `task-statuses`,
+      key: "task-statuses",
     }),
     instantlyClient.getTaskStatuses
   );
+}
+
+export async function preloadTaskStatuses(
+  params: UseTaskStatusesParams,
+  value: TaskStatus[]
+) {
+  const key: UseTaskStatusesKey = {
+    key: "task-statuses",
+    projectId: params.projectId,
+    workspaceId: params.workspaceId,
+  };
+  await preload(key, () => value);
 }

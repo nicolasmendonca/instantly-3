@@ -19,5 +19,5 @@
       "src/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../instantly-core/src/features/workspace/avatar.ts"]
 }

@@ -30,7 +30,7 @@
     "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react-swc": "^3.0.0",
     "autoprefixer": "^10.4.13",
-    "instantly-client": "workspace:*",
+    "instantly-core": "workspace:*",
     "postcss": "^8.4.21",
     "react-icons": "^4.8.0",
     "tailwindcss": "^3.2.7",

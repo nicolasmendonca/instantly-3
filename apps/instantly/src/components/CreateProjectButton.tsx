@@ -7,20 +7,17 @@ import {
   useBoolean,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { Project, Workspace } from "instantly-client";
+import { Project, Workspace } from "instantly-core";
 import { useForm } from "react-hook-form";
-import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
 interface ICreateProjectButtonProps {
   workspaceId: Workspace["id"];
-  onProjectCreated: (projectId: Project["id"]) => void;
+  onCreateProject: (projectName: Project["name"]) => Promise<void>;
 }
 
 export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
-  workspaceId,
-  onProjectCreated,
+  onCreateProject,
 }) => {
-  const instantlyClient = useInstantlyClient();
   const [isCreatingProject, setIsCreatingProject] = useBoolean(false);
   const inputBg = useColorModeValue("gray.100", "gray.600");
   const buttonHoverBgColor = useColorModeValue("cyan.400", "cyan.600");
@@ -36,15 +33,12 @@ export const CreateProjectButton: React.FC<ICreateProjectButtonProps> = ({
   if (isCreatingProject) {
     return (
       <form
-        onSubmit={handleSubmit(async (values) => {
-          const name = values.name;
-          setIsCreatingProject.off();
-          const projectId = await instantlyClient.createProject({
-            workspaceId,
-            name,
+        onSubmit={handleSubmit((values) => {
+          setIsCreatingProject.on();
+          onCreateProject(values.name).finally(() => {
+            reset();
+            setIsCreatingProject.off();
           });
-          reset();
-          onProjectCreated(projectId);
         })}
       >
         <FormControl isInvalid={nameErrorMessage !== undefined}>

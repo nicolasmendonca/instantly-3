@@ -1,5 +1,5 @@
 import React from "react";
-import { Workspace } from "instantly-client";
+import { Workspace } from "instantly-core";
 import { useParams } from "react-router-dom";
 import { Box, Center, Img } from "@chakra-ui/react";
 

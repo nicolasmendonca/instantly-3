@@ -1,5 +1,10 @@
 import produce from "immer";
-import useSWR, { SWRResponse, MutatorOptions, SWRConfiguration } from "swr";
+import useSWR, {
+  SWRResponse,
+  MutatorOptions,
+  SWRConfiguration,
+  preload,
+} from "swr";
 import {
   Project,
   Task,
@@ -11,41 +16,31 @@ import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 type UseTasksParam = {
   workspaceId: Workspace["id"];
   projectId: Project["id"];
-  filters: Partial<UseTasksFilters>;
+  filters?: Partial<UseTasksFilters>;
 };
 
 type UseTasksFilters = {
   archived?: boolean;
-  status?: TaskStatus["id"];
+  status?: TaskStatus["id"] | null;
 };
 
-const useTasksDefaultFilters: UseTasksFilters = {
+export const useTasksDefaultFilters: Required<UseTasksFilters> = {
   archived: false,
-  status: undefined,
+  status: null,
 };
 
-type UseTasksKey = UseTasksParam & {
+type UseTasksKey = Pick<UseTasksParam, "workspaceId" | "projectId"> & {
   key: "tasks";
+  archivedFilter: boolean;
+  statusFilter: TaskStatus["id"] | null;
 };
 
 type UseProjectTasksReturnType = SWRResponse<Task[], any, any> & {
-  createTask: (
-    taskPayload: Pick<Task, "status"> & Partial<Omit<Task, "id">>,
-    mutatorOptions?: MutatorOptions
-  ) => Promise<Task>;
-  toggleTaskArchived: (
-    taskId: Task["id"],
-    mutatorOptions?: MutatorOptions
-  ) => Promise<void>;
-  updateTask: (
-    taskId: Task["id"],
-    updatedTask: Task,
-    mutatorOptions?: MutatorOptions
-  ) => Promise<void>;
-  deleteTask: (
-    taskId: Task["id"],
-    mutatorOptions?: MutatorOptions
-  ) => Promise<void>;
+  createTask: (taskPayload: Task) => Promise<void>;
+  toggleTaskArchived: (taskId: Task["id"]) => Promise<void>;
+  updateTask: (taskId: Task["id"], updatedTask: Task) => Promise<void>;
+  deleteTask: (taskId: Task["id"]) => Promise<void>;
+  optimisticMutate: (tasks: Task[]) => Promise<void>;
 };
 
 export function useTasks(
@@ -53,115 +48,115 @@ export function useTasks(
   swrConfig: SWRConfiguration = {}
 ): UseProjectTasksReturnType {
   const instantlyClient = useInstantlyClient();
-  const { data, mutate, ...rest } = useSWR<Task[], any, () => UseTasksKey>(
+  const swr = useSWR<Task[], any, () => UseTasksKey>(
     () => ({
       key: `tasks`,
       workspaceId,
       projectId,
-      filters: { ...useTasksDefaultFilters, ...filters },
+      archivedFilter: filters.archived ?? useTasksDefaultFilters.archived,
+      statusFilter: filters.status ?? useTasksDefaultFilters.status,
     }),
-    instantlyClient.getTasksForProject,
+    ({ workspaceId, projectId, archivedFilter, statusFilter }) =>
+      instantlyClient.getTasksForProject({
+        workspaceId,
+        projectId,
+        filters: {
+          archived: archivedFilter,
+          status: statusFilter ?? undefined,
+        },
+      }),
     swrConfig
   );
 
+  async function optimisticMutate(tasks: Task[]) {
+    await swr.mutate(tasks, { revalidate: false });
+  }
+
   const createTask: UseProjectTasksReturnType["createTask"] = async (
-    taskPayload,
-    mutatorOptions = {}
+    taskPayload
   ) => {
-    const task: Omit<Task, "id"> = {
-      archived: false,
-      title: "",
-      description: "",
-      ...taskPayload,
-    };
-
-    const newTask = await instantlyClient.createTask(
-      {
-        projectId,
-        workspaceId,
-      },
-      task
-    );
-
-    const updatedTasks = produce(data, (tasks) => {
-      tasks?.push(newTask);
+    const updatedTasks = produce(swr.data!, (tasks) => {
+      tasks?.push(taskPayload);
     });
 
-    mutate(updatedTasks, mutatorOptions);
-
-    return newTask;
+    await Promise.all([
+      instantlyClient.createTask(
+        {
+          projectId,
+          workspaceId,
+        },
+        taskPayload
+      ),
+      optimisticMutate(updatedTasks),
+    ]);
   };
 
   const updateTask: UseProjectTasksReturnType["updateTask"] = async (
     taskId,
-    updatedTask,
-    mutatorOptions = {}
+    updatedTask
   ) => {
-    const optimisticData = produce(data!, (draft) => {
+    const optimisticData = produce(swr.data!, (draft) => {
       const taskIndex = draft.findIndex((_task) => _task.id === taskId);
       if (taskIndex === -1)
         throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
       draft[taskIndex] = updatedTask;
     });
-    await mutate(
-      async (_data) => {
-        await instantlyClient.updateTask(
-          {
-            workspaceId,
-            projectId,
-            taskId: taskId,
-          },
-          updatedTask
-        );
-        return optimisticData;
-      },
-      {
-        optimisticData,
-        ...mutatorOptions,
-      }
-    );
+    await Promise.all([
+      instantlyClient.updateTask(
+        {
+          workspaceId,
+          projectId,
+        },
+        updatedTask
+      ),
+      optimisticMutate(optimisticData),
+    ]);
   };
 
   const toggleTaskArchived: UseProjectTasksReturnType["toggleTaskArchived"] =
-    async (taskId: Task["id"], mutatorOptions = {}): Promise<void> => {
-      if (!data)
+    async (taskId: Task["id"]): Promise<void> => {
+      if (!swr.data)
         throw new Error("No data found on useProjectTasks@toggleTaskArchived");
 
-      const task = data.find((_task) => _task.id === taskId);
+      const task = swr.data.find((_task) => _task.id === taskId);
       const updatedTask = produce(task!, (draft) => {
         draft.archived = !draft.archived;
       });
-      await updateTask(taskId, updatedTask, mutatorOptions);
+      await updateTask(taskId, updatedTask);
     };
 
   const deleteTask: UseProjectTasksReturnType["deleteTask"] = async (
-    taskId,
-    mutatorOptions = {}
+    taskId
   ) => {
-    const optimisticData = data?.filter((task) => task.id !== taskId);
-    mutate(
-      async () => {
-        await instantlyClient.deleteTask({
-          workspaceId,
-          projectId,
-          taskId,
-        });
-        return optimisticData;
-      },
-      {
-        optimisticData,
-        ...mutatorOptions,
-      }
-    );
+    const optimisticData = swr.data!.filter((task) => task.id !== taskId);
+
+    await Promise.all([
+      instantlyClient.deleteTask({
+        workspaceId,
+        projectId,
+        taskId,
+      }),
+      optimisticMutate(optimisticData),
+    ]);
   };
 
   return {
-    data,
-    mutate,
+    ...swr,
     toggleTaskArchived,
     updateTask,
     createTask,
     deleteTask,
-    ...rest,
+    optimisticMutate,
   };
+}
+
+export async function preloadTasks(params: UseTasksParam, tasks: Task[]) {
+  const key: UseTasksKey = {
+    key: "tasks",
+    projectId: params.projectId,
+    workspaceId: params.projectId,
+    archivedFilter: params.filters?.archived ?? useTasksDefaultFilters.archived,
+    statusFilter: params.filters?.status ?? useTasksDefaultFilters.status,
+  };
+  await preload(key, () => tasks);
 }
