@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "firebase": "^9.17.2",
-    "instantly-client": "workspace:*"
+    "instantly-client": "workspace:*",
+    "zod": "^3.21.4"
   }
 }

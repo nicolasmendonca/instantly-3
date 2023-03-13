@@ -1,5 +1,5 @@
 import { Project, Task, User, Workspace } from "instantly-client";
-import useSWR, { SWRConfiguration, SWRResponse } from "swr";
+import useSWR, { MutatorOptions, SWRConfiguration, SWRResponse } from "swr";
 import { z } from "zod";
 import { useInstantlyClient } from "src/features/clients/useInstantlyClient";
 
@@ -18,8 +18,11 @@ type UseTaskKey = UseTaskRequiredParam & {
 };
 
 type UseTaskReturnType = SWRResponse<Task, any, any> & {
-  updateTask: (taskId: Task["id"], task: Task) => Promise<void>;
-  deleteTask: (taskId: Task["id"]) => Promise<void>;
+  updateTask: (
+    taskId: Task["id"],
+    task: Task,
+    mutatorOptions?: MutatorOptions
+  ) => Promise<void>;
 };
 
 const useTaskKeyValidator = z.object({
@@ -43,7 +46,8 @@ export function useTask(
 
   const updateTask: UseTaskReturnType["updateTask"] = async (
     taskId,
-    updatedTask
+    updatedTask,
+    mutatorOptions = {}
   ) => {
     const { projectId, workspaceId } = useTaskKeyValidator.parse(params);
     await mutate(
@@ -55,25 +59,11 @@ export function useTask(
         return updatedTask;
       },
       {
-        revalidate: false,
         optimisticData: updatedTask,
+        ...mutatorOptions,
       }
     );
   };
 
-  const deleteTask: UseTaskReturnType["deleteTask"] = async (taskId) => {
-    const { projectId, workspaceId } = useTaskKeyValidator.parse(params);
-    await mutate(
-      async () => {
-        await instantlyClient.deleteTask({ taskId, projectId, workspaceId });
-        return undefined;
-      },
-      {
-        optimisticData: undefined,
-        revalidate: false,
-      }
-    );
-  };
-
-  return { ...swr, data, mutate, updateTask, deleteTask };
+  return { ...swr, data, mutate, updateTask };
 }

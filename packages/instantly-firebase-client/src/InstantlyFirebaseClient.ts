@@ -35,6 +35,24 @@ import {
   type Auth,
 } from "firebase/auth";
 import { generateWorkspaceAvatar } from "./avatar";
+import {
+  workspaceSchema,
+  workspaceWithoutIdSchema,
+} from "./schemas/workspace.schema";
+import { userProfileWithoutIdSchema } from "./schemas/userProfile.schema";
+import {
+  workspaceMemberSchema,
+  workspaceMemberWithoutIdSchema,
+} from "./schemas/workspaceMember.schema";
+import {
+  projectSchema,
+  projectWithoutIdSchema,
+} from "./schemas/project.schema";
+import {
+  taskStatusSchema,
+  taskStatusWithoudIdSchema,
+} from "./schemas/taskStatus.schema";
+import { taskSchema, taskWithoutIdSchema } from "./schemas/task.schema";
 
 export class InstantlyFirebaseClient implements InstantlyClient {
   private app: FirebaseApp;
@@ -102,10 +120,13 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           const userDocSnapshot = await transaction.get(userDoc);
           // If the user profile doesn't exist, create it
           if (!userDocSnapshot.exists()) {
-            transaction.set(userDoc, <TypesPerFirestorePath["/users/:userId"]>{
-              name: currentUser.displayName,
-              avatarUrl: currentUser.photoURL,
-            });
+            transaction.set(
+              userDoc,
+              userProfileWithoutIdSchema.parse({
+                name: currentUser.displayName,
+                avatarUrl: currentUser.photoURL,
+              })
+            );
           }
         });
       }
@@ -127,10 +148,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       workspaceId
     );
     const workspaceDoc = await getDoc(workspaceDocReference);
-    return {
+    return workspaceSchema.parse({
       id: workspaceDoc.id,
-      ...(workspaceDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId"]),
-    };
+      ...workspaceDoc.data(),
+    });
   };
 
   public getWorkspacesForUser: InstantlyClient["getWorkspacesForUser"] =
@@ -140,10 +161,12 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         collection(this.firestore, "users", userId, "workspaces")
       );
       _collection.forEach((doc) => {
-        workspaces.push({
-          id: doc.id,
-          ...(doc.data() as TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]),
-        });
+        workspaces.push(
+          workspaceSchema.parse({
+            id: doc.id,
+            ...doc.data(),
+          })
+        );
       });
       return workspaces;
     };
@@ -153,16 +176,20 @@ export class InstantlyFirebaseClient implements InstantlyClient {
   ): Promise<Workspace["id"]> => {
     const {
       uid: userCreatorId,
-      photoURL,
-      displayName,
+      photoURL: userAvatarUrl,
+      displayName: userDisplayName,
     } = this.auth.currentUser!;
     const avatarUrl = generateWorkspaceAvatar(name);
     const workspaceCollection = collection(this.firestore, "workspaces");
-    const workspaceDoc = await addDoc(workspaceCollection, {
+    const workspaceCreationPayload = workspaceWithoutIdSchema.parse({
       name,
       avatarUrl,
-      userCreatorId: userCreatorId,
-    } satisfies TypesPerFirestorePath["/workspaces/:workspaceId"]);
+      userCreatorId,
+    });
+    const workspaceDoc = await addDoc(
+      workspaceCollection,
+      workspaceCreationPayload
+    );
     const role = "admin";
     await Promise.all([
       setDoc(
@@ -173,11 +200,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           "workspaces",
           workspaceDoc.id
         ),
-        {
-          avatarUrl,
-          name,
-          userCreatorId,
-        } satisfies TypesPerFirestorePath["/users/:userId/workspaces/:workspaceId"]
+        workspaceCreationPayload
       ),
       setDoc(
         doc(
@@ -187,11 +210,11 @@ export class InstantlyFirebaseClient implements InstantlyClient {
           "members",
           userCreatorId
         ),
-        {
+        workspaceMemberWithoutIdSchema.parse({
           role,
-          avatarUrl: photoURL!,
-          name: displayName ?? "Anon",
-        } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]
+          avatarUrl: userAvatarUrl!,
+          name: userDisplayName,
+        })
       ),
     ]);
     return workspaceDoc.id;
@@ -202,10 +225,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       const workspaceMemberProfileDoc = await getDoc(
         doc(this.firestore, "workspaces", workspaceId, "members", memberId)
       );
-      return {
+      return workspaceMemberSchema.parse({
         id: workspaceMemberProfileDoc.id,
-        ...(workspaceMemberProfileDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/members/:memberId"]),
-      };
+        ...workspaceMemberProfileDoc.data(),
+      });
     };
 
   /**
@@ -218,10 +241,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       );
 
       return projectsCollection.docs.map((doc) => {
-        return {
+        return projectSchema.parse({
           id: doc.id,
-          ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]),
-        };
+          ...doc.data(),
+        });
       });
     };
 
@@ -230,10 +253,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       const projectDoc = await getDoc(
         doc(this.firestore, "workspaces", workspaceId, "projects", projectId)
       );
-      return {
+      return projectSchema.parse({
         id: projectDoc.id,
-        ...(projectDoc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]),
-      };
+        ...projectDoc.data(),
+      });
     };
 
   public createProject: InstantlyClient["createProject"] = async ({
@@ -247,12 +270,14 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       "projects"
     );
 
-    // Create the project document
-    const projectDoc = await addDoc(projectCollection, {
+    const projectPayload = projectWithoutIdSchema.parse({
       name,
       emoji: "📝",
       defaultTaskStatusId: "",
-    } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId"]);
+    });
+
+    // Create the project document
+    const projectDoc = await addDoc(projectCollection, projectPayload);
 
     // Create the default task statuses
     const taskStatusesCollection = collection(
@@ -265,15 +290,24 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     );
 
     const [todoTask] = await Promise.all([
-      addDoc(taskStatusesCollection, {
-        label: "To Do",
-      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
-      addDoc(taskStatusesCollection, {
-        label: "In Progress",
-      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
-      addDoc(taskStatusesCollection, {
-        label: "Done",
-      } satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
+      addDoc(
+        taskStatusesCollection,
+        taskStatusWithoudIdSchema.parse({
+          label: "To Do",
+        })
+      ),
+      addDoc(
+        taskStatusesCollection,
+        taskStatusWithoudIdSchema.parse({
+          label: "In Progress",
+        })
+      ),
+      addDoc(
+        taskStatusesCollection,
+        taskStatusWithoudIdSchema.parse({
+          label: "Done",
+        })
+      ),
     ]);
 
     // Asign the first "To Do" task status as the default task status for the project
@@ -316,10 +350,12 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     const _documents = await getDocs(query(_collection, ..._queryFilters));
 
     _documents.forEach((doc) => {
-      tasks.push({
-        id: doc.id,
-        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
-      });
+      tasks.push(
+        taskSchema.parse({
+          id: doc.id,
+          ...doc.data(),
+        })
+      );
     });
     return tasks;
   };
@@ -340,10 +376,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         taskId
       )
     ).then((doc) => {
-      return {
+      return taskSchema.parse({
         id: doc.id,
-        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
-      };
+        ...doc.data(),
+      });
     });
   };
 
@@ -361,13 +397,13 @@ export class InstantlyFirebaseClient implements InstantlyClient {
     );
     const taskDocRef = await addDoc(
       taskCollection,
-      taskPayload satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+      taskWithoutIdSchema.parse(taskPayload)
     );
     const loadedTask = await getDoc(taskDocRef);
-    return {
-      ...(loadedTask.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]),
+    return taskSchema.parse({
       id: loadedTask.id,
-    };
+      ...loadedTask.data(),
+    });
   };
 
   public updateTask: InstantlyClient["updateTask"] = async (
@@ -385,7 +421,7 @@ export class InstantlyFirebaseClient implements InstantlyClient {
         "tasks",
         taskId
       ),
-      taskWithoutId satisfies TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/tasks/:taskId"]
+      taskWithoutIdSchema.parse(taskWithoutId)
     );
   };
 
@@ -422,29 +458,10 @@ export class InstantlyFirebaseClient implements InstantlyClient {
       )
     );
     return statusesCollection.docs.map((doc) => {
-      return {
+      return taskStatusSchema.parse({
         id: doc.id,
-        ...(doc.data() as TypesPerFirestorePath["/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId"]),
-      };
+        ...doc.data(),
+      });
     });
   };
 }
-
-type TypesPerFirestorePath = {
-  "/users/:userId": Omit<User, "id">;
-  "/users/:userId/workspaces/:workspaceId": Omit<Workspace, "id">;
-  "/workspaces/:workspaceId": Omit<Workspace, "id">;
-  "/workspaces/:workspaceId/members/:memberId": Omit<
-    WorkspaceMemberProfile,
-    "id"
-  >;
-  "/workspaces/:workspaceId/projects/:projectId": Omit<Project, "id">;
-  "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId": Omit<
-    Task,
-    "id"
-  >;
-  "/workspaces/:workspaceId/projects/:projectId/task-statuses/:statusId": Omit<
-    TaskStatus,
-    "id"
-  >;
-};

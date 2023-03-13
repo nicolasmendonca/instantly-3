@@ -1,41 +1,114 @@
 import React from "react";
-import {
-  Box,
-  BoxProps,
-  Button,
-  Checkbox,
-  Link,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  useBoolean,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import ConfettiExplosion from "react-confetti-explosion";
-import { Link as RRDLink, useParams, useSearchParams } from "react-router-dom";
-import { Project, Task, TaskStatus, Workspace } from "instantly-client";
+import { Box, useColorModeValue } from "@chakra-ui/react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { TaskWidget } from "./TaskWidget";
+import { z } from "zod";
+import { TasksListPane } from "./TasksListPane";
 import { useTasks } from "./useTasks";
-import { TaskStatusDropdown } from "./TaskStatusDropdown";
-import produce from "immer";
-import { useTaskStatuses } from "./useTaskStatuses";
-import TaskIdPage from "./TaskWidget";
 import { useProject } from "./useProject";
+import produce from "immer";
+import { Task, TaskStatus } from "instantly-client";
 
 interface IProjectIdPageProps {}
+
+const projectIdPageParamsSchema = z.object({
+  projectId: z.string(),
+  workspaceId: z.string(),
+});
 
 const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
   }>();
-  const [searchParams] = useSearchParams();
+
+  const { workspaceId, projectId } = projectIdPageParamsSchema.parse(params);
+  const { data: project } = useProject({ workspaceId, projectId });
+  const {
+    data: tasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    mutate: mutateTasks,
+  } = useTasks({
+    projectId,
+    workspaceId,
+    filters: {
+      archived: false,
+    },
+  });
+  const [searchParams, setSearchParams] = useSearchParams();
   const selectedTaskId = searchParams.get("taskId");
   const dividerColor = useColorModeValue("gray.200", "gray.700");
+
+  const selectedTask = React.useMemo(() => {
+    if (!selectedTaskId) return undefined;
+    return tasks?.find((_task) => _task.id === selectedTaskId);
+  }, [selectedTaskId, tasks]);
+
+  function handleDeleteTask(task: Task) {
+    setSearchParams((prev) => {
+      prev.delete("taskId");
+      return prev;
+    });
+    deleteTask(task.id);
+  }
+
+  async function handleCreateTask() {
+    const createdTask = await createTask(
+      {
+        status: z.string().parse(project?.defaultTaskStatusId),
+      },
+      { revalidate: false }
+    );
+    setSearchParams((prev) => {
+      prev.set("taskId", createdTask.id);
+      return prev;
+    });
+  }
+
+  async function handleArchiveTask(task: Task) {
+    await updateTask(
+      task.id,
+      produce(task, (draft) => {
+        draft.archived = true;
+      })
+    );
+    mutateTasks(() => tasks?.filter((task) => task.id !== selectedTaskId));
+  }
+
+  async function handleTaskStatusChange(task: Task, status: TaskStatus) {
+    await updateTask(
+      task.id,
+      produce(task, (draft) => {
+        draft.status = status.id;
+      })
+    );
+  }
+
+  async function handleTaskUpdated(updatedTask: Task) {
+    if (updatedTask.archived) {
+      // if the task was archived, we remove it from the current list and close the task page
+      mutateTasks(() => tasks?.filter((task) => task.id !== selectedTaskId));
+      setSearchParams((prev) => {
+        prev.delete("taskId");
+        return prev;
+      });
+    } else {
+      // otherwise, we update the task in the current list
+      mutateTasks(() => {
+        const taskIndex = tasks!.findIndex(
+          (task) => task.id === updatedTask.id
+        );
+        if (taskIndex === -1) return tasks;
+        return produce(tasks!, (draft) => {
+          draft[taskIndex] = updatedTask;
+        });
+      });
+    }
+  }
+
+  if (!tasks) return null;
 
   return (
     <>
@@ -52,7 +125,11 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
             borderLeftWidth="1px"
             borderLeftColor={dividerColor}
           >
-            <TaskIdPage />
+            <TaskWidget
+              initialTaskData={selectedTask}
+              onDeleteTaskIntent={handleDeleteTask}
+              onTaskUpdated={handleTaskUpdated}
+            />
           </Box>
         </>
       )}
@@ -61,165 +138,22 @@ const ProjectIdPage: React.FC<IProjectIdPageProps> = () => {
         mx={selectedTaskId ? "0" : "auto"}
       >
         <TasksListPane
-          workspaceId={params.workspaceId!}
-          projectId={params.projectId!}
-          float={{ base: "none", lg: "left" }}
-          w={{ base: "full", lg: selectedTaskId ? "40%" : "full" }}
-          maxH={{ base: "none", lg: "calc(100dvh - 80px)" }}
-          overflowY="auto"
+          workspaceId={workspaceId}
+          projectId={projectId}
+          onCreateTaskIntent={handleCreateTask}
+          onTaskArchivedIntent={handleArchiveTask}
+          onTaskStatusChangeIntent={handleTaskStatusChange}
+          tasks={tasks}
+          activeTaskId={searchParams.get("taskId") ?? undefined}
+          boxProps={{
+            float: { base: "none", lg: "left" },
+            w: { base: "full", lg: selectedTaskId ? "40%" : "full" },
+            maxH: { base: "none", lg: "calc(100dvh - 80px)" },
+            overflowY: "auto",
+          }}
         />
       </Box>
     </>
-  );
-};
-
-const TasksListPane: React.FC<
-  BoxProps & {
-    workspaceId: Workspace["id"];
-    projectId: Project["id"];
-  }
-> = ({ workspaceId, projectId, ...props }) => {
-  const [isCreatingTask, setIsCreatingTask] = useBoolean();
-  const {
-    data: tasks,
-    toggleTaskArchived,
-    createTask,
-    updateTask,
-  } = useTasks({
-    workspaceId,
-    projectId,
-    filters: {
-      archived: false,
-    },
-  });
-  const { data: taskStatuses } = useTaskStatuses({
-    workspaceId,
-    projectId,
-  });
-  const { data: project } = useProject({
-    workspaceId,
-    projectId,
-  });
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [showConfettiForTaskId, setShowConfettiForTaskId] = React.useState("");
-  const untitledTaskColor = useColorModeValue("blackAlpha.600", "gray");
-  const titledTaskColor = useColorModeValue("black", "white");
-  const activeTaskTrBgColor = useColorModeValue("cyan.300", "cyan.800");
-  const activeTaskId = searchParams.get("taskId");
-
-  const handleTaskArchivedChange = async (task: Task) => {
-    if (!tasks) return;
-    setShowConfettiForTaskId(task.archived ? "" : task.id);
-    toggleTaskArchived(task.id, { revalidate: false });
-  };
-
-  const handleAddNewTask = async () => {
-    setIsCreatingTask.on();
-    const createdTask = await createTask({
-      status: project!.defaultTaskStatusId,
-    });
-    setSearchParams({ taskId: createdTask.id });
-    setIsCreatingTask.off();
-  };
-
-  const handleChangeTaskStatus = async (task: Task, status: TaskStatus) => {
-    updateTask(
-      task.id,
-      produce(task, (draft) => {
-        draft.status = status.id;
-      })
-    );
-  };
-
-  if (!tasks || !taskStatuses) return null;
-
-  return (
-    <Box {...props}>
-      <TableContainer>
-        <Button
-          size="sm"
-          mx={2}
-          my={4}
-          onClick={handleAddNewTask}
-          isLoading={isCreatingTask}
-        >
-          Add New Task
-        </Button>
-        <Table>
-          <Thead>
-            <Tr>
-              <Th px={2}></Th>
-              <Th px={2}>Title</Th>
-              <Th px={2}>Status</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {tasks?.map((task) => {
-              const taskStatus = taskStatuses.find(
-                (taskStatus) => taskStatus.id === task.status
-              )!;
-
-              return (
-                <Tr
-                  key={task.id}
-                  transition="all .2s ease-in-out"
-                  bgColor={
-                    activeTaskId === task.id ? activeTaskTrBgColor : "initial"
-                  }
-                >
-                  <Td textAlign="center" px={2}>
-                    <Checkbox
-                      isChecked={task.archived}
-                      onChange={() => handleTaskArchivedChange(task)}
-                    />
-                    {showConfettiForTaskId === task.id && <ConfettiExplosion />}
-                  </Td>
-                  <Td px={2} w="full">
-                    <Link
-                      as={RRDLink}
-                      to={{
-                        search: `taskId=${task.id}`,
-                      }}
-                      color={titledTaskColor}
-                      _hover={{
-                        color: activeTaskId ? "initial" : "cyan.700",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      {task.title ? (
-                        task.title
-                      ) : (
-                        <Text
-                          as="span"
-                          color={
-                            activeTaskId === task.id
-                              ? "white"
-                              : untitledTaskColor
-                          }
-                        >
-                          Untitled task
-                        </Text>
-                      )}
-                    </Link>
-                  </Td>
-                  <Td px={2}>
-                    <TaskStatusDropdown
-                      status={taskStatus}
-                      statusOptions={taskStatuses}
-                      onChange={(newStatus) =>
-                        handleChangeTaskStatus(task, newStatus)
-                      }
-                      menuProps={{ size: "sm" }}
-                      buttonProps={{ size: "xs" }}
-                    />
-                  </Td>
-                </Tr>
-              );
-            })}
-          </Tbody>
-        </Table>
-      </TableContainer>
-    </Box>
   );
 };
 

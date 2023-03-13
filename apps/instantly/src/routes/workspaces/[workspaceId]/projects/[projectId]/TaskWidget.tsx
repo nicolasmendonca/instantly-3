@@ -19,16 +19,23 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { APP_SETTINGS } from "src/features/appSettings";
 import { EditableButton, EditableValue } from "src/components/EditableValue";
 import produce from "immer";
-import { useTasks } from "./useTasks";
 import { TaskStatusDropdown } from "./TaskStatusDropdown";
 import { useTaskStatuses } from "./useTaskStatuses";
 import { HamburgerIcon } from "@chakra-ui/icons";
-import { TaskStatus } from "instantly-client";
+import { Task, TaskStatus } from "instantly-client";
 import { useAuth } from "src/features/auth/AuthProvider";
 
-interface ITaskIdPageProps {}
+interface ITaskWidgetProps {
+  onDeleteTaskIntent: (task: Task) => void;
+  onTaskUpdated: (updatedTask: Task) => void;
+  initialTaskData?: Task;
+}
 
-const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
+export const TaskWidget: React.FC<ITaskWidgetProps> = ({
+  onDeleteTaskIntent,
+  onTaskUpdated,
+  initialTaskData,
+}) => {
   const params = useParams<{
     projectId: string;
     workspaceId: string;
@@ -40,23 +47,17 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
   const projectId = params.projectId!;
   const taskId = searchParams.get("taskId")!;
 
-  const { data: tasks, mutate: mutateTasks } = useTasks({
-    projectId,
-    workspaceId,
-    filters: {
-      archived: false,
+  const { data: task, updateTask } = useTask(
+    {
+      workspaceId,
+      projectId,
+      taskId,
+      userId: user?.id,
     },
-  });
-  const {
-    data: task,
-    updateTask,
-    deleteTask,
-  } = useTask({
-    workspaceId,
-    projectId,
-    taskId,
-    userId: user?.id,
-  });
+    {
+      fallbackData: initialTaskData,
+    }
+  );
   const { data: taskStatuses } = useTaskStatuses({
     projectId,
     workspaceId,
@@ -74,37 +75,27 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
   )!;
 
   async function handleArchiveTask() {
-    await updateTask(
-      taskId,
-      produce(task!, (draft) => {
-        draft.archived = true;
-      })
-    );
-    mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
-  }
-  function handleDeleteTask() {
-    deleteTask(taskId);
-    mutateTasks(() => tasks?.filter((task) => task.id !== taskId));
+    const updatedTask = produce(task!, (draft) => {
+      draft.archived = true;
+    });
+    updateTask(taskId, updatedTask, {
+      revalidate: false,
+    });
+    onTaskUpdated(updatedTask);
   }
 
   function handleChangeTaskStatus(status: TaskStatus) {
-    updateTask(
-      taskId,
-      produce(task!, (draft) => {
-        draft.status = status.id;
-      })
-    );
-
-    const updatedTasks = produce(tasks!, (draft) => {
-      const taskIndex = draft.findIndex((_task) => _task.id === taskId);
-      if (taskIndex === -1)
-        throw new Error("taskIndex === -1 on useProjectTasks@updateTask");
-      draft[taskIndex].status = status.id;
+    const updatedTask = produce(task!, (draft) => {
+      draft.status = status.id;
     });
-    mutateTasks(updatedTasks);
+    updateTask(taskId, updatedTask, {
+      revalidate: false,
+    });
+
+    onTaskUpdated(updatedTask);
   }
 
-  if (!tasks || !task || !taskStatuses) return null;
+  if (!task || !taskStatuses) return null;
 
   return (
     <Stack gap={2}>
@@ -113,13 +104,11 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
         key={`editable-title-${taskId}`}
         defaultValue={task.title}
         onSubmit={async (newTitle) => {
-          await updateTask(
-            taskId,
-            produce(task, (draft) => {
-              draft.title = newTitle;
-            })
-          );
-          await mutateTasks();
+          const updatedTask = produce(task, (draft) => {
+            draft.title = newTitle;
+          });
+          updateTask(taskId, updatedTask);
+          onTaskUpdated(updatedTask);
         }}
         fontSize="2xl"
         fontWeight="extrabold"
@@ -149,7 +138,9 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
           </MenuButton>
           <MenuList>
             <MenuItem onClick={handleArchiveTask}>Archive task</MenuItem>
-            <MenuItem onClick={handleDeleteTask}>Delete task</MenuItem>
+            <MenuItem onClick={() => onDeleteTaskIntent(task)}>
+              Delete task
+            </MenuItem>
           </MenuList>
         </Menu>
       </Flex>
@@ -158,12 +149,11 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
         key={`editable-description-${taskId}`}
         defaultValue={task.description}
         onSubmit={async (newDescription) => {
-          await updateTask(
-            taskId,
-            produce(task, (draft) => {
-              draft.description = newDescription;
-            })
-          );
+          const updatedTask = produce(task, (draft) => {
+            draft.description = newDescription;
+          });
+          updateTask(taskId, updatedTask);
+          onTaskUpdated(updatedTask);
         }}
       >
         <EditablePreview
@@ -178,5 +168,3 @@ const TaskIdPage: React.FC<ITaskIdPageProps> = () => {
     </Stack>
   );
 };
-
-export default TaskIdPage;
