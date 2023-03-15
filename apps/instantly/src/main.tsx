@@ -22,7 +22,7 @@ const themeConfig: ThemeConfig = {
 };
 const theme = extendTheme({ config: themeConfig });
 
-const limitRevalidations = true;
+const limitRevalidations = import.meta.env.DEV;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
