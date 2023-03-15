@@ -3,7 +3,7 @@ export function swrLoggerMiddleware(useSWRNext) {
     // Add logger to the original fetcher.
     const extendedFetcher = (...args) => {
       const value = typeof key === "function" ? key() : key;
-      console.info("SWR:", value.key, value);
+      console.info("SWR:", value.key, value;
       return fetcher(...args);
     };
 
